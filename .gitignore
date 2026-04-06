@@ -21,3 +21,6 @@ backend/*.db
 .pytest_cache/
 .ruff_cache/
 **/.venv/
+
+# Tests
+backend/test_report.txt
