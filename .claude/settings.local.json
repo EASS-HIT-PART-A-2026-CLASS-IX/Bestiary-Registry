@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(uv run *)",
+      "Bash(.venv/Scripts/pytest tests/test_worker.py -v)"
+    ]
+  }
+}
