@@ -24,3 +24,7 @@ backend/*.db
 
 # Tests
 backend/test_report.txt
+
+# Claude Code
+.claude/
+CLAUDE.md
