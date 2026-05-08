@@ -4,7 +4,9 @@ from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
 
 from app.app import app
+from app.auth import create_access_token, hash_password
 from app.db import get_session
+from app.models import User
 
 # 1. Setup In-Memory Database for Testing
 engine = create_engine(
@@ -30,10 +32,19 @@ def client_fixture(session: Session):
     app.dependency_overrides.clear()
 
 
+@pytest.fixture(name="admin_headers")
+def admin_headers_fixture(session: Session) -> dict:
+    user = User(username="test_admin", hashed_password=hash_password("x"), role="admin")
+    session.add(user)
+    session.commit()
+    token = create_access_token({"sub": "test_admin", "role": "admin"})
+    return {"Authorization": f"Bearer {token}"}
+
+
 # --- Happy Path Tests ---
 
 
-def test_create_creature(client: TestClient):
+def test_create_creature(client: TestClient, admin_headers):
     payload = {
         "name": "Test Dragon",
         "mythology": "Norse",
@@ -41,7 +52,7 @@ def test_create_creature(client: TestClient):
         "danger_level": 9,
         "habitat": "Mountains",
     }
-    response = client.post("/creatures/", json=payload)
+    response = client.post("/creatures/", json=payload, headers=admin_headers)
     assert response.status_code == 200
     data = response.json()
     assert data["name"] == payload["name"]
@@ -49,14 +60,14 @@ def test_create_creature(client: TestClient):
     assert "api.dicebear.com" in data["image_url"]
 
 
-def test_get_creatures(client: TestClient):
+def test_get_creatures(client: TestClient, admin_headers):
     payload = {
         "name": "Unicorn",
         "mythology": "Greek",
         "creature_type": "Equine",
         "danger_level": 1,
     }
-    client.post("/creatures/", json=payload)
+    client.post("/creatures/", json=payload, headers=admin_headers)
 
     response = client.get("/creatures/")
     assert response.status_code == 200
@@ -65,7 +76,7 @@ def test_get_creatures(client: TestClient):
     assert "Unicorn" in names
 
 
-def test_update_creature(client: TestClient):
+def test_update_creature(client: TestClient, admin_headers):
     create_res = client.post(
         "/creatures/",
         json={
@@ -74,6 +85,7 @@ def test_update_creature(client: TestClient):
             "creature_type": "Test",
             "danger_level": 5,
         },
+        headers=admin_headers,
     )
     creature_id = create_res.json()["id"]
 
@@ -83,14 +95,16 @@ def test_update_creature(client: TestClient):
         "creature_type": "God",
         "danger_level": 10,
     }
-    response = client.put(f"/creatures/{creature_id}", json=payload)
+    response = client.put(
+        f"/creatures/{creature_id}", json=payload, headers=admin_headers
+    )
     assert response.status_code == 200
     data = response.json()
     assert data["name"] == "Evolved Creature"
     assert data["danger_level"] == 10
 
 
-def test_delete_creature(client: TestClient):
+def test_delete_creature(client: TestClient, admin_headers):
     create_res = client.post(
         "/creatures/",
         json={
@@ -99,10 +113,11 @@ def test_delete_creature(client: TestClient):
             "creature_type": "Test",
             "danger_level": 1,
         },
+        headers=admin_headers,
     )
     creature_id = create_res.json()["id"]
 
-    response = client.delete(f"/creatures/{creature_id}")
+    response = client.delete(f"/creatures/{creature_id}", headers=admin_headers)
     assert response.status_code == 200
     assert response.json() == {"detail": "creature deleted successfully"}
 
@@ -120,20 +135,20 @@ def test_get_creature_not_found(client: TestClient):
     assert response.json()["detail"] == "Creature not found"
 
 
-def test_update_creature_not_found(client: TestClient):
+def test_update_creature_not_found(client: TestClient, admin_headers):
     payload = {
         "name": "Ghost",
         "mythology": "None",
         "creature_type": "Spirit",
         "danger_level": 0,
     }
-    response = client.put("/creatures/99999", json=payload)
+    response = client.put("/creatures/99999", json=payload, headers=admin_headers)
     assert response.status_code == 404
     assert response.json()["detail"] == "Creature not found"
 
 
-def test_delete_creature_not_found(client: TestClient):
-    response = client.delete("/creatures/99999")
+def test_delete_creature_not_found(client: TestClient, admin_headers):
+    response = client.delete("/creatures/99999", headers=admin_headers)
     assert response.status_code == 404
     assert response.json()["detail"] == "Creature not found"
 
@@ -141,18 +156,18 @@ def test_delete_creature_not_found(client: TestClient):
 # --- Validation Tests (422 Unprocessable Entity) ---
 
 
-def test_create_creature_missing_field(client: TestClient):
+def test_create_creature_missing_field(client: TestClient, admin_headers):
     # Missing 'name'
     payload = {
         "mythology": "Norse",
         "creature_type": "Reptile",
         "danger_level": 9,
     }
-    response = client.post("/creatures/", json=payload)
+    response = client.post("/creatures/", json=payload, headers=admin_headers)
     assert response.status_code == 422
 
 
-def test_create_creature_invalid_type(client: TestClient):
+def test_create_creature_invalid_type(client: TestClient, admin_headers):
     # 'danger_level' should be int, verify string fails if pydantic strict mode or if it can't coerce
     # Pydantic often coerces "10" to 10. Let's send "Very Dangerous" which can't be int.
     payload = {
@@ -161,14 +176,14 @@ def test_create_creature_invalid_type(client: TestClient):
         "creature_type": "Reptile",
         "danger_level": "High",  # Invalid
     }
-    response = client.post("/creatures/", json=payload)
+    response = client.post("/creatures/", json=payload, headers=admin_headers)
     assert response.status_code == 422
 
 
 # --- State Persistence Verification ---
 
 
-def test_create_then_list(client: TestClient):
+def test_create_then_list(client: TestClient, admin_headers):
     """Verify that a created item appears in the list immediately."""
     name = "Persistence Check"
     client.post(
@@ -179,6 +194,7 @@ def test_create_then_list(client: TestClient):
             "creature_type": "Test",
             "danger_level": 5,
         },
+        headers=admin_headers,
     )
 
     response = client.get("/creatures/")
@@ -187,7 +203,7 @@ def test_create_then_list(client: TestClient):
     assert name in names
 
 
-def test_update_then_read_reflects_change(client: TestClient):
+def test_update_then_read_reflects_change(client: TestClient, admin_headers):
     """Verify that an update is immediately visible in a get-one call."""
     # 1. Create
     res = client.post(
@@ -198,6 +214,7 @@ def test_update_then_read_reflects_change(client: TestClient):
             "creature_type": "Test",
             "danger_level": 1,
         },
+        headers=admin_headers,
     )
     cid = res.json()["id"]
 
@@ -210,6 +227,7 @@ def test_update_then_read_reflects_change(client: TestClient):
             "creature_type": "Test",
             "danger_level": 2,
         },
+        headers=admin_headers,
     )
 
     # 3. Read

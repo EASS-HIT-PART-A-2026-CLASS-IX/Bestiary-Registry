@@ -2,6 +2,27 @@ from typing import Optional
 from sqlmodel import SQLModel, Field
 
 
+class User(SQLModel, table=True):
+    __tablename__ = "app_user"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    username: str = Field(unique=True, index=True)
+    hashed_password: str
+    role: str = Field(default="viewer")  # "admin" | "viewer"
+
+
+class UserCreate(SQLModel):
+    username: str
+    password: str
+    role: str = "viewer"
+
+
+class UserRead(SQLModel):
+    id: int
+    username: str
+    role: str
+
+
 class CreatureBase(SQLModel):
     name: str = Field(index=True)
     mythology: str

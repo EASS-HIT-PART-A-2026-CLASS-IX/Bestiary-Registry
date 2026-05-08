@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from app.db import create_db_and_tables  # get_session re-exported for tests
-from app.routers import creatures, classes
+from app.db import create_db_and_tables
+from app.routers import auth, creatures, classes
 
 
 @asynccontextmanager
@@ -12,6 +12,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+app.include_router(auth.router)
 app.include_router(creatures.router)
 app.include_router(classes.router)
 
