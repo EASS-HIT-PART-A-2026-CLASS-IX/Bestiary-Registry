@@ -9,6 +9,7 @@ dependencies = [
     "arq>=0.28.0",
     "fastapi>=0.121.2",
     "fastapi-users[sqlalchemy]>=15.0.1",
+    "google-genai>=2.0.0",
     "httpx>=0.28.1",
     "imagekitio>=4.2.0",
     "passlib[bcrypt]>=1.7.4",

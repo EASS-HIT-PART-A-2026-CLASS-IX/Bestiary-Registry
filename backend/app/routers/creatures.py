@@ -4,6 +4,7 @@ from app.auth import require_role
 from app.db import SessionDep
 from app.models import CreatureCreate, CreatureRead
 from app.services import creatures as service
+from app.services import lore as lore_service
 
 router = APIRouter(prefix="/creatures", tags=["creatures"])
 
@@ -38,3 +39,12 @@ def update_creature_endpoint(
 def delete_creature_endpoint(creature_id: int, session: SessionDep) -> dict:
     service.delete_creature(session, creature_id)
     return {"detail": "creature deleted successfully"}
+
+
+@router.post("/{creature_id}/lore")
+def generate_lore_endpoint(creature_id: int, session: SessionDep) -> dict:
+    creature = service.get_creature(session, creature_id)
+    lore = lore_service.generate_lore(
+        creature.name, creature.mythology, creature.creature_type
+    )
+    return {"lore": lore}
