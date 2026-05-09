@@ -5,6 +5,28 @@ import os
 API_URL = os.getenv("API_URL", "http://localhost:8000")
 
 
+def _auth_headers(token: str) -> dict:
+    return {"Authorization": f"Bearer {token}"}
+
+
+def login(username: str, password: str) -> dict:
+    response = requests.post(
+        f"{API_URL}/auth/token",
+        data={"username": username, "password": password},
+    )
+    response.raise_for_status()
+    return response.json()
+
+
+def register(username: str, password: str, role: str = "viewer") -> dict:
+    response = requests.post(
+        f"{API_URL}/auth/register",
+        json={"username": username, "password": password, "role": role},
+    )
+    response.raise_for_status()
+    return response.json()
+
+
 def get_creatures():
     try:
         response = requests.get(f"{API_URL}/creatures/")
@@ -31,20 +53,25 @@ def export_creatures_csv() -> bytes:
     return response.content
 
 
-def create_creature(payload):
-    response = requests.post(f"{API_URL}/creatures/", json=payload)
+def create_creature(payload, token: str = None):
+    headers = _auth_headers(token) if token else {}
+    response = requests.post(f"{API_URL}/creatures/", json=payload, headers=headers)
     response.raise_for_status()
     return response.json()
 
 
-def update_creature(creature_id, payload):
-    response = requests.put(f"{API_URL}/creatures/{creature_id}", json=payload)
+def update_creature(creature_id, payload, token: str = None):
+    headers = _auth_headers(token) if token else {}
+    response = requests.put(
+        f"{API_URL}/creatures/{creature_id}", json=payload, headers=headers
+    )
     response.raise_for_status()
     return response.json()
 
 
-def delete_creature(creature_id):
-    response = requests.delete(f"{API_URL}/creatures/{creature_id}")
+def delete_creature(creature_id, token: str = None):
+    headers = _auth_headers(token) if token else {}
+    response = requests.delete(f"{API_URL}/creatures/{creature_id}", headers=headers)
     response.raise_for_status()
     return True
 

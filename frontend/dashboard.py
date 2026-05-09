@@ -3,6 +3,7 @@ import datetime
 import realm_map
 import sidebar
 import settings
+import auth
 from st_keyup import st_keyup
 import streamlit.components.v1 as components
 import os
@@ -35,6 +36,10 @@ def load_css():
 
 
 load_css()
+
+if not st.session_state.get("token"):
+    auth.show_auth_page()
+    st.stop()
 
 
 def format_time_ago(iso_str):
@@ -75,7 +80,7 @@ def get_classes():
 
 def delete_creature(id):
     try:
-        api_client.delete_creature(id)
+        api_client.delete_creature(id, token=st.session_state.get("token"))
         api_utils.clear_cache()
         return True
     except Exception as e:
@@ -85,7 +90,7 @@ def delete_creature(id):
 
 def update_creature(id, payload):
     try:
-        api_client.update_creature(id, payload)
+        api_client.update_creature(id, payload, token=st.session_state.get("token"))
         api_utils.clear_cache()
     except Exception as e:
         st.error(f"Error: {e}")
@@ -181,7 +186,7 @@ def summon_dialog():
                 # last_modify auto-set by backend
             }
             try:
-                api_client.create_creature(payload)
+                api_client.create_creature(payload, token=st.session_state.get("token"))
                 api_utils.clear_cache()
                 st.success("Entity Summoned!")
                 st.rerun()

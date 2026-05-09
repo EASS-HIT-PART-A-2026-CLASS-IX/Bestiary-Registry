@@ -2,14 +2,18 @@ import streamlit as st
 
 
 def render_sidebar(current_view: str):
+    username = st.session_state.get("username", "Guest")
+    role = st.session_state.get("role", "viewer")
+    avatar_url = f"https://api.dicebear.com/7.x/identicon/svg?seed={username}"
+
     st.sidebar.markdown(
-        """
+        f"""
         <div style="margin-bottom: 2rem;">
             <div style="display: flex; align-items: center; gap: 12px; padding: 8px 0;">
-                <div style="width: 48px; height: 48px; border-radius: 50%; border: 2px solid #7f13ec; background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDJ04_kiv_eXMKK7q6dBDpl0GbckGVvqgDlx7Scg_WIDxfhuMVHZrJ-OPOZM2dTsS9SSf3Le6HrGacvT9SvvQuCOV8IKZfA6MXE45D4E67k1Pyo1N2dyqQm0SamvPybuJS-K79_ZQCwEOURuwaEWXXr5demS0gEi6qLkMFAbMLBL_cZIsknSrxe84Znlk_TqUn4bZ1HOtb_yoIi5vt5CJc7Mo-mxmHh_KAPoT4ITi8a_SB6cCfjhobTn7DNpbNDog01W1aKRusnDoo'); background-size: cover; background-position: center;"></div>
+                <div style="width: 48px; height: 48px; border-radius: 50%; border: 2px solid #7f13ec; background-image: url('{avatar_url}'); background-size: cover; background-position: center;"></div>
                 <div>
-                    <div style="font-weight: 700; color: white; font-size: 15px;">Merlin's Admin</div>
-                    <div style="font-size: 13px; color: #ad92c9;">High Summoner</div>
+                    <div style="font-weight: 700; color: white; font-size: 15px;">{username}</div>
+                    <div style="font-size: 13px; color: #ad92c9;">{role.capitalize()}</div>
                 </div>
             </div>
         </div>
