@@ -1,7 +1,20 @@
+import csv
+import io
 from datetime import datetime, timezone
 from fastapi import HTTPException
 from sqlmodel import Session, select
 from app.models import Creature, CreatureCreate
+
+_CSV_FIELDS = [
+    "id",
+    "name",
+    "mythology",
+    "creature_type",
+    "danger_level",
+    "habitat",
+    "last_modify",
+    "image_url",
+]
 
 
 def create_creature(session: Session, creature: CreatureCreate) -> Creature:
@@ -41,6 +54,15 @@ def create_creature(session: Session, creature: CreatureCreate) -> Creature:
     session.commit()
     session.refresh(db_creature)
     return db_creature
+
+
+def export_creatures_csv(session: Session) -> str:
+    buf = io.StringIO()
+    writer = csv.DictWriter(buf, fieldnames=_CSV_FIELDS, extrasaction="ignore")
+    writer.writeheader()
+    for c in session.exec(select(Creature)).all():
+        writer.writerow(c.model_dump())
+    return buf.getvalue()
 
 
 def list_creatures(session: Session) -> list[Creature]:

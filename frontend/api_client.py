@@ -25,6 +25,12 @@ def get_classes():
         return []
 
 
+def export_creatures_csv() -> bytes:
+    response = requests.get(f"{API_URL}/creatures/export/csv")
+    response.raise_for_status()
+    return response.content
+
+
 def create_creature(payload):
     response = requests.post(f"{API_URL}/creatures/", json=payload)
     response.raise_for_status()

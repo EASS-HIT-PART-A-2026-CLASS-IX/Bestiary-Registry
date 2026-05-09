@@ -269,6 +269,17 @@ with col_b:
     st.write("")  # Spacer
     if st.button("＋ Summon New Creature", type="primary", use_container_width=True):
         summon_dialog()
+    try:
+        csv_bytes = api_client.export_creatures_csv()
+        st.download_button(
+            "⬇ Export CSV",
+            data=csv_bytes,
+            file_name="creatures.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+    except Exception:
+        pass
 
 st.write("")
 

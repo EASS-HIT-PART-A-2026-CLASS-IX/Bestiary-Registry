@@ -28,3 +28,6 @@ backend/test_report.txt
 # Claude Code
 .claude/
 CLAUDE.md
+
+# Personal notes
+docs/progress-notes.md

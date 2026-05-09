@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends
+from fastapi.responses import StreamingResponse
 
 from app.auth import require_role
 from app.db import SessionDep
@@ -21,6 +22,16 @@ def create_creature_endpoint(
 @router.get("/", response_model=list[CreatureRead])
 def get_creatures_endpoint(session: SessionDep) -> list[CreatureRead]:
     return service.list_creatures(session)
+
+
+@router.get("/export/csv")
+def export_creatures_csv_endpoint(session: SessionDep) -> StreamingResponse:
+    csv_content = service.export_creatures_csv(session)
+    return StreamingResponse(
+        iter([csv_content]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=creatures.csv"},
+    )
 
 
 @router.get("/{creature_id}", response_model=CreatureRead)
