@@ -168,3 +168,77 @@ def test_admin_can_create_and_delete(session, client):
 def test_get_creatures_is_public(client):
     r = client.get("/creatures/")
     assert r.status_code == 200
+
+
+# ── change password tests ─────────────────────────────────────────────────────
+
+
+def test_change_password_success(session, client):
+    _add_user(session, "pw_user", "viewer")
+    tok = _token("pw_user", "viewer")
+    r = client.put(
+        "/auth/me/password",
+        json={"old_password": "secret", "new_password": "newpass123"},
+        headers={"Authorization": f"Bearer {tok}"},
+    )
+    assert r.status_code == 200
+    assert r.json()["detail"] == "Password updated"
+    # New password must work for login
+    r2 = client.post(
+        "/auth/token", data={"username": "pw_user", "password": "newpass123"}
+    )
+    assert r2.status_code == 200
+
+
+def test_change_password_wrong_old_password(session, client):
+    _add_user(session, "pw_user2", "viewer")
+    tok = _token("pw_user2", "viewer")
+    r = client.put(
+        "/auth/me/password",
+        json={"old_password": "wrongpassword", "new_password": "newpass123"},
+        headers={"Authorization": f"Bearer {tok}"},
+    )
+    assert r.status_code == 400
+    assert r.json()["detail"] == "Incorrect current password"
+
+
+def test_change_password_requires_auth(client):
+    r = client.put(
+        "/auth/me/password",
+        json={"old_password": "secret", "new_password": "newpass123"},
+    )
+    assert r.status_code == 401
+
+
+# ── avatar tests ──────────────────────────────────────────────────────────────
+
+
+def test_get_me_returns_user(session, client):
+    _add_user(session, "me_user", "viewer")
+    tok = _token("me_user", "viewer")
+    r = client.get("/auth/me", headers={"Authorization": f"Bearer {tok}"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["username"] == "me_user"
+    assert body["role"] == "viewer"
+    assert body["avatar"] is None
+
+
+def test_update_avatar_success(session, client):
+    _add_user(session, "av_user", "viewer")
+    tok = _token("av_user", "viewer")
+    r = client.put(
+        "/auth/me/avatar",
+        json={"avatar": "base64encodedstring"},
+        headers={"Authorization": f"Bearer {tok}"},
+    )
+    assert r.status_code == 200
+    assert r.json()["detail"] == "Avatar updated"
+
+    r2 = client.get("/auth/me", headers={"Authorization": f"Bearer {tok}"})
+    assert r2.json()["avatar"] == "base64encodedstring"
+
+
+def test_update_avatar_requires_auth(client):
+    r = client.put("/auth/me/avatar", json={"avatar": "somedata"})
+    assert r.status_code == 401

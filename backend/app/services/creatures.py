@@ -53,6 +53,19 @@ def create_creature(session: Session, creature: CreatureCreate) -> Creature:
     session.add(db_creature)
     session.commit()
     session.refresh(db_creature)
+
+    try:
+        from app.services.lore import generate_lore
+
+        db_creature.lore = generate_lore(
+            db_creature.name, db_creature.mythology, db_creature.creature_type
+        )
+        session.add(db_creature)
+        session.commit()
+        session.refresh(db_creature)
+    except Exception:
+        pass
+
     return db_creature
 
 

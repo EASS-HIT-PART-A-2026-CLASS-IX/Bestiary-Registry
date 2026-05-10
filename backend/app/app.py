@@ -1,12 +1,14 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from app.db import create_db_and_tables
+from app.db import create_db_and_tables, run_migrations, seed_default_admin
 from app.routers import auth, creatures, classes
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     create_db_and_tables()
+    run_migrations()
+    seed_default_admin()
     yield
 
 

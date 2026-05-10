@@ -2,13 +2,22 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlmodel import select
+from sqlmodel import SQLModel, select
 
-from app.auth import create_access_token, hash_password, verify_password
+from app.auth import CurrentUser, create_access_token, hash_password, verify_password
 from app.db import SessionDep
 from app.models import User, UserCreate, UserRead
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+class PasswordChange(SQLModel):
+    old_password: str
+    new_password: str
+
+
+class AvatarUpdate(SQLModel):
+    avatar: str
 
 
 @router.post("/register", response_model=UserRead, status_code=201)
@@ -40,3 +49,42 @@ def login(
         )
     token = create_access_token({"sub": user.username, "role": user.role})
     return {"access_token": token, "token_type": "bearer"}
+
+
+@router.get("/me", response_model=UserRead)
+def get_me(current_user: CurrentUser) -> UserRead:
+    return current_user
+
+
+@router.put("/me/password")
+def change_password(
+    body: PasswordChange,
+    current_user: CurrentUser,
+    session: SessionDep,
+) -> dict:
+    if not verify_password(body.old_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Incorrect current password")
+    current_user.hashed_password = hash_password(body.new_password)
+    session.add(current_user)
+    session.commit()
+    return {"detail": "Password updated"}
+
+
+@router.put("/me/avatar")
+def update_avatar(
+    body: AvatarUpdate,
+    current_user: CurrentUser,
+    session: SessionDep,
+) -> dict:
+    print(
+        f"[avatar] user={current_user.username} received base64 len={len(body.avatar)}"
+    )
+    current_user.avatar = body.avatar
+    session.add(current_user)
+    session.commit()
+    session.refresh(current_user)
+    saved_len = len(current_user.avatar) if current_user.avatar else 0
+    print(
+        f"[avatar] DB save {'OK' if saved_len == len(body.avatar) else 'MISMATCH'} (stored len={saved_len})"
+    )
+    return {"detail": "Avatar updated"}

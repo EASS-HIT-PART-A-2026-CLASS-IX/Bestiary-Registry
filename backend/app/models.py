@@ -9,6 +9,7 @@ class User(SQLModel, table=True):
     username: str = Field(unique=True, index=True)
     hashed_password: str
     role: str = Field(default="viewer")  # "admin" | "viewer"
+    avatar: Optional[str] = Field(default=None)
 
 
 class UserCreate(SQLModel):
@@ -21,6 +22,7 @@ class UserRead(SQLModel):
     id: int
     username: str
     role: str
+    avatar: Optional[str] = None
 
 
 class CreatureBase(SQLModel):
@@ -31,6 +33,7 @@ class CreatureBase(SQLModel):
     habitat: str = Field(default="Unknown")
     last_modify: str = Field(default="Unknown")
     image_url: str = Field(default="")
+    lore: Optional[str] = Field(default=None)
 
 
 class Creature(CreatureBase, table=True):
