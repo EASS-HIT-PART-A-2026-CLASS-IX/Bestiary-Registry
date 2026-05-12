@@ -54,6 +54,7 @@ def show_auth_page():
                         st.session_state["token"] = token
                         st.session_state["username"] = payload.get("sub", username)
                         st.session_state["role"] = payload.get("role", "viewer")
+                        st.query_params["token"] = token
                         try:
                             me = api_client.get_me(token)
                             if me.get("avatar"):

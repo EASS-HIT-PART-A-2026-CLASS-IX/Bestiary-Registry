@@ -83,5 +83,6 @@ def render_sidebar(current_view: str):
         st.rerun()
 
     if st.sidebar.button("Log Out", key="logout", use_container_width=True):
+        st.query_params.clear()
         st.session_state.clear()
         st.rerun()

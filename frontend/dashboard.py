@@ -38,6 +38,20 @@ def load_css():
 load_css()
 
 if not st.session_state.get("token"):
+    _param_token = st.query_params.get("token")
+    if _param_token:
+        _payload = auth._decode_token_payload(_param_token)
+        st.session_state["token"] = _param_token
+        st.session_state["username"] = _payload.get("sub", "")
+        st.session_state["role"] = _payload.get("role", "viewer")
+        try:
+            me = api_client.get_me(_param_token)
+            if me.get("avatar"):
+                st.session_state["avatar"] = me["avatar"]
+        except Exception:
+            pass
+
+if not st.session_state.get("token"):
     auth.show_auth_page()
     st.stop()
 
