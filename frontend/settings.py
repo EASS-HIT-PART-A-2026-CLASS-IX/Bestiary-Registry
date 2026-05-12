@@ -1,6 +1,9 @@
+import base64
+import io
 import api_utils
 import streamlit as st
 import api_client
+from PIL import Image, ImageOps
 
 
 @st.dialog("Edit Class")
@@ -131,3 +134,86 @@ def render_settings():
                                 "✖", key=f"del_{c['id']}", help=f"Delete {c['name']}"
                             ):
                                 delete_class_dialog(c)
+
+    with tab2:
+        st.markdown(
+            '<style>[data-testid="InputInstructions"] { display: none !important; }</style>',
+            unsafe_allow_html=True,
+        )
+
+        _, col2, _ = st.columns([1, 2, 1])
+        with col2:
+            st.markdown("### My Account")
+
+            # ── Change Password ───────────────────────────────────────────────
+            st.markdown("#### Change Password")
+            with st.form("change_password_form"):
+                old_pw = st.text_input("Current Password", type="password")
+                new_pw = st.text_input("New Password", type="password")
+                confirm_pw = st.text_input("Confirm New Password", type="password")
+                if st.form_submit_button("Update Password", type="primary"):
+                    if not old_pw or not new_pw or not confirm_pw:
+                        st.error("All fields are required.")
+                    elif new_pw != confirm_pw:
+                        st.error("New passwords do not match.")
+                    else:
+                        try:
+                            api_client.change_password(
+                                old_pw, new_pw, st.session_state.get("token")
+                            )
+                            st.success("Password updated successfully.")
+                        except Exception as e:
+                            st.error(f"Failed: {e}")
+
+            st.markdown("---")
+
+            # ── Avatar ───────────────────────────────────────────────────────
+            st.markdown("#### Avatar")
+            st.caption(
+                "Upload a custom image or reset to your default generated avatar."
+            )
+
+            uploaded = st.file_uploader(
+                "Upload avatar", type=["jpg", "png"], label_visibility="collapsed"
+            )
+            if uploaded is not None:
+                st.image(uploaded, width=96)
+                if st.button("Save Avatar", type="primary"):
+                    img = Image.open(uploaded).convert("RGB")
+                    img = ImageOps.fit(img, (100, 100))
+                    buf = io.BytesIO()
+                    img.save(buf, format="PNG")
+                    avatar_b64 = base64.b64encode(buf.getvalue()).decode()
+                    try:
+                        api_client.update_avatar(
+                            avatar_b64, st.session_state.get("token")
+                        )
+                        st.session_state["avatar"] = avatar_b64
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Failed to save avatar: {e}")
+
+            if st.button("Reset to default avatar"):
+                try:
+                    api_client.update_avatar("", st.session_state.get("token"))
+                except Exception:
+                    pass
+                st.session_state.pop("avatar", None)
+                st.rerun()
+
+            st.markdown("---")
+
+            # ── Export ───────────────────────────────────────────────────────
+            st.markdown("#### Export Data")
+            st.caption("Download all creatures as a CSV file.")
+            try:
+                csv_bytes = api_client.export_creatures_csv()
+                st.download_button(
+                    "⬇ Export Creatures CSV",
+                    data=csv_bytes,
+                    file_name="creatures.csv",
+                    mime="text/csv",
+                    use_container_width=True,
+                )
+            except Exception as e:
+                st.error(f"Export failed: {e}")

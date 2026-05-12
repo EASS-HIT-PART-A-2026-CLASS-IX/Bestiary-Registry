@@ -17,6 +17,9 @@ services:
     environment:
       REDIS_URL: redis://redis:6379
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      DB_PATH: /data/creatures.db
+    volumes:
+      - db-data:/data
     depends_on:
       redis:
         condition: service_healthy
@@ -32,6 +35,10 @@ services:
     command: ["uv", "run", "arq", "app.worker.WorkerSettings"]
     environment:
       REDIS_URL: redis://redis:6379
+      DB_PATH: /data/creatures.db
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+    volumes:
+      - db-data:/data
     depends_on:
       redis:
         condition: service_healthy
@@ -41,3 +48,6 @@ services:
       timeout: 15s
       retries: 3
       start_period: 20s
+
+volumes:
+  db-data:

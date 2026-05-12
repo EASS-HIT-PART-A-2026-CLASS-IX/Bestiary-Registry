@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
 
 from app.auth import require_role
@@ -13,10 +13,17 @@ _admin = Depends(require_role("admin"))
 
 
 @router.post("/", response_model=CreatureRead, dependencies=[_admin])
-def create_creature_endpoint(
-    creature: CreatureCreate, session: SessionDep
+async def create_creature_endpoint(
+    creature: CreatureCreate, session: SessionDep, request: Request
 ) -> CreatureRead:
-    return service.create_creature(session, creature)
+    db_creature = service.create_creature(session, creature)
+    try:
+        arq = getattr(request.app.state, "arq", None)
+        if arq:
+            await arq.enqueue_job("generate_creature_lore_task", db_creature.id)
+    except Exception:
+        pass
+    return db_creature
 
 
 @router.get("/", response_model=list[CreatureRead])

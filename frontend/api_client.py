@@ -27,6 +27,32 @@ def register(username: str, password: str, role: str = "viewer") -> dict:
     return response.json()
 
 
+def change_password(old_password: str, new_password: str, token: str) -> dict:
+    response = requests.put(
+        f"{API_URL}/auth/me/password",
+        json={"old_password": old_password, "new_password": new_password},
+        headers=_auth_headers(token),
+    )
+    response.raise_for_status()
+    return response.json()
+
+
+def get_me(token: str) -> dict:
+    response = requests.get(f"{API_URL}/auth/me", headers=_auth_headers(token))
+    response.raise_for_status()
+    return response.json()
+
+
+def update_avatar(avatar_b64: str, token: str) -> dict:
+    response = requests.put(
+        f"{API_URL}/auth/me/avatar",
+        json={"avatar": avatar_b64},
+        headers=_auth_headers(token),
+    )
+    response.raise_for_status()
+    return response.json()
+
+
 def get_creatures():
     try:
         response = requests.get(f"{API_URL}/creatures/")
@@ -37,6 +63,12 @@ def get_creatures():
         return []
 
 
+def get_creature(creature_id: int) -> dict:
+    response = requests.get(f"{API_URL}/creatures/{creature_id}")
+    response.raise_for_status()
+    return response.json()
+
+
 def get_classes():
     try:
         response = requests.get(f"{API_URL}/classes/")
@@ -45,6 +77,12 @@ def get_classes():
         return []
     except Exception:
         return []
+
+
+def generate_lore(creature_id: int) -> str:
+    response = requests.post(f"{API_URL}/creatures/{creature_id}/lore")
+    response.raise_for_status()
+    return response.json()["lore"]
 
 
 def export_creatures_csv() -> bytes:

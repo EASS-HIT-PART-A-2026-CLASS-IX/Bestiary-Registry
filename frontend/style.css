@@ -44,6 +44,17 @@ div[data-baseweb="input"]:focus-within {
     box-shadow: 0 0 0 1px var(--color-primary) !important;
 }
 
+/* Password visibility toggle — undo the secondary-button overrides */
+div[data-baseweb="input"] button {
+    padding: 0 8px !important;
+    display: inline-flex !important;
+    background-color: transparent !important;
+    border: none !important;
+    color: var(--color-text-muted) !important;
+    position: relative !important;
+    z-index: 1 !important;
+}
+
 input[data-baseweb="input"] {
     color: rgb(255, 255, 255) !important;
     background-color: transparent !important;
@@ -134,25 +145,12 @@ div[data-testid="column"]>div>div>div.element-container>div.stMarkdown>div {
     line-height: 1.5;
 }
 
-/* TABLE ROW */
-.table-row {
-    padding: 6px;
-    border-bottom: 1px solid var(--color-border-dark);
-    transition: background-color 0.15s ease-in-out;
-}
-
-.table-row:hover {
-    background-color: rgba(25, 16, 34, 0.4);
-}
-
-.table-row:last-child {
-    border-bottom: none;
-}
+/* CREATURE CARDS — border comes from the inline-styled HTML div in dashboard.py */
 
 /* BUTTONS */
 /* Primary (Summon) */
 button[kind="primary"] {
-    background-color: #7f13ec !important;
+    background-color: var(--color-border-dark) !important;
     color: white !important;
     border: none !important;
     font-weight: 600 !important;

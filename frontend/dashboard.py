@@ -177,21 +177,15 @@ def summon_dialog():
         else:
             final_class = new_class if selected_class == "Other" else selected_class
 
-            payload = {
+            st.session_state["pending_creature"] = {
                 "name": name,
                 "creature_type": final_class,
                 "mythology": myth,
                 "danger_level": danger,
                 "habitat": habitat,
-                # last_modify auto-set by backend
             }
-            try:
-                api_client.create_creature(payload, token=st.session_state.get("token"))
-                api_utils.clear_cache()
-                st.success("Entity Summoned!")
-                st.rerun()
-            except Exception as e:
-                st.error(f"Failed: {e}")
+            st.session_state["show_summon_dialog"] = False
+            st.rerun()
 
 
 @st.dialog("Edit Creature")
@@ -259,6 +253,15 @@ if view == "settings":
     settings.render_settings()
     st.stop()
 
+# --- Pending creature creation (API call deferred from dialog) ---
+if "pending_creature" in st.session_state:
+    payload = st.session_state.pop("pending_creature")
+    try:
+        api_client.create_creature(payload, token=st.session_state.get("token"))
+        api_utils.clear_cache()
+    except Exception as e:
+        st.error(f"Failed to summon creature: {e}")
+
 # --- Layout: Main Dashboard ---
 col_h, col_b = st.columns([3, 1])
 with col_h:
@@ -273,18 +276,11 @@ with col_h:
 with col_b:
     st.write("")  # Spacer
     if st.button("＋ Summon New Creature", type="primary", use_container_width=True):
-        summon_dialog()
-    try:
-        csv_bytes = api_client.export_creatures_csv()
-        st.download_button(
-            "⬇ Export CSV",
-            data=csv_bytes,
-            file_name="creatures.csv",
-            mime="text/csv",
-            use_container_width=True,
-        )
-    except Exception:
-        pass
+        st.session_state["show_summon_dialog"] = True
+        st.rerun()
+
+if st.session_state.get("show_summon_dialog"):
+    summon_dialog()
 
 st.write("")
 
@@ -386,7 +382,7 @@ st.write("")
 
 # Search & Filter
 # Using columns with manual markdown icons not perfect, sticking to input with placeholders as cleaner in Python
-s_col, f_col = st.columns([2, 1])
+s_col, f_col, r_col = st.columns([2, 1, 0.6], vertical_alignment="bottom")
 with s_col:
     # Custom search icon styling
     # We inject a manual icon overlay and use dynamic styles into the iframe
@@ -490,6 +486,11 @@ with f_col:
         sel_habitats = st.multiselect("Habitat", all_habitats)
         sel_danger = st.slider("Danger Level", 1, 10, (1, 10))
 
+with r_col:
+    if st.button("↺ Refresh", use_container_width=True):
+        api_utils.clear_cache()
+        st.rerun()
+
 # Apply Filters
 filtered = creatures
 
@@ -526,128 +527,114 @@ headers = [
 with st.container():
     st.markdown('<div class="table-header">', unsafe_allow_html=True)
 
-    # We construct the header HTML manually to ensure it sits in the container
-    # But to align with Streamlit columns, we actually need to render standard columns
-    # and just style them.
-    # The container wrapper ".table-header" gives the BG.
-
     for col, h in zip(cols, headers):
         with col:
             st.markdown(f'<div class="col-header">{h}</div>', unsafe_allow_html=True)
 
     st.markdown("</div>", unsafe_allow_html=True)
 
+st.markdown("</div>", unsafe_allow_html=True)
+
 # Data Rows
 for c in filtered:
-    st.markdown('<div class="table-row">', unsafe_allow_html=True)
+    with st.container():
+        c1, c2, c3, c4, c5, c6, c7 = st.columns([1.8, 1, 1.5, 2, 1.4, 1.2, 1])
 
-    c1, c2, c3, c4, c5, c6, c7 = st.columns([1.8, 1, 1.5, 2, 1.4, 1.2, 1])
-
-    # 1. Name
-    with c1:
-        img_url = (
-            c.get("image_url")
-            or f"https://api.dicebear.com/7.x/identicon/svg?seed={c['name']}"
-        )
-        st.markdown(
-            f"""
-        <div style="display: flex; align-items: center; gap: 12px;">
-            <img src="{img_url}" class="avatar-img">
-            <span class="text-white font-bold table-text">{c["name"]}</span>
-        </div>
-        """,
-            unsafe_allow_html=True,
-        )
-
-    # 2. Class
-    with c2:
-        ctype = c["creature_type"]
-        # Dynamic Color Lookup
-        classes_data = get_classes()  # Cached
-
-        # Default
-        bg, text, border = "rgba(127,19,236,0.1)", "#ad92c9", "rgba(127,19,236,0.2)"
-
-        # Find matching class
-        match = next((x for x in classes_data if x["name"] == ctype), None)
-        if match:
-            bg, text, border = (
-                match["color"],
-                match["text_color"],
-                match["border_color"],
+        # 1. Name
+        with c1:
+            img_url = (
+                c.get("image_url")
+                or f"https://api.dicebear.com/7.x/identicon/svg?seed={c['name']}"
+            )
+            st.markdown(
+                f"""
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <img src="{img_url}" class="avatar-img">
+                <span class="text-white font-bold table-text">{c["name"]}</span>
+            </div>
+            """,
+                unsafe_allow_html=True,
             )
 
-        st.markdown(
-            f'<span class="badge" style="background:{bg}; color:{text}; border-color:{border};">{ctype}</span>',
-            unsafe_allow_html=True,
-        )
+        # 2. Class
+        with c2:
+            ctype = c["creature_type"]
+            classes_data = get_classes()
+            bg, text, border = "rgba(127,19,236,0.1)", "#ad92c9", "rgba(127,19,236,0.2)"
+            match = next((x for x in classes_data if x["name"] == ctype), None)
+            if match:
+                bg, text, border = (
+                    match["color"],
+                    match["text_color"],
+                    match["border_color"],
+                )
+            st.markdown(
+                f'<span class="badge" style="background:{bg}; color:{text}; border-color:{border};">{ctype}</span>',
+                unsafe_allow_html=True,
+            )
 
-    # 3. Myth
-    with c3:
-        st.markdown(
-            f'<span class="text-muted table-text">{c["mythology"]}</span>',
-            unsafe_allow_html=True,
-        )
+        # 3. Mythology
+        with c3:
+            st.markdown(
+                f'<span class="text-muted table-text">{c["mythology"]}</span>',
+                unsafe_allow_html=True,
+            )
 
-    # 4. Danger Level (1-10)
-    with c4:
-        val = c["danger_level"]
-
-        # 1-3 Low (Green), 4-6 Moderate (Yellow), 7-8 High (Purple), 9-10 Critical (Red)
-        if val <= 3:
-            label, color = "Low", "#4ade80"
-        elif val <= 6:
-            label, color = "Moderate", "#FFD700"
-        elif val <= 8:
-            label, color = "High", "#FFA500"
-        else:
-            label, color = "Critical", "#EF6F44"
-
-        # Width: val * 10 percent
-        width = val * 10
-
-        st.markdown(
-            f"""
-        <div class="col-danger">
-            <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;">
-                <span style="color: {color}; font-weight: 700;">{label}</span>
-                <span style="color: {color}; font-weight: 600;">{val}/10</span>
+        # 4. Danger Level (1-10)
+        with c4:
+            val = c["danger_level"]
+            if val <= 3:
+                label, color = "Low", "#4ade80"
+            elif val <= 6:
+                label, color = "Moderate", "#FFD700"
+            elif val <= 8:
+                label, color = "High", "#FFA500"
+            else:
+                label, color = "Critical", "#EF6F44"
+            width = val * 10
+            st.markdown(
+                f"""
+            <div class="col-danger">
+                <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;">
+                    <span style="color: {color}; font-weight: 700;">{label}</span>
+                    <span style="color: {color}; font-weight: 600;">{val}/10</span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" style="width: {width}%; background-color: {color};"></div>
+                </div>
             </div>
-            <div class="progress-bar-bg">
-                <div class="progress-bar-fill" style="width: {width}%; background-color: {color};"></div>
-            </div>
-        </div>
-        """,
-            unsafe_allow_html=True,
-        )
+            """,
+                unsafe_allow_html=True,
+            )
 
-    # 5. Habitat
-    with c5:
-        st.markdown(
-            f'<span class="text-muted table-text">{c.get("habitat", "Unknown")}</span>',
-            unsafe_allow_html=True,
-        )
+        # 5. Habitat
+        with c5:
+            st.markdown(
+                f'<span class="text-muted table-text">{c.get("habitat", "Unknown")}</span>',
+                unsafe_allow_html=True,
+            )
 
-    # 6. Last Modify
-    with c6:
-        # relative_time = format_time_ago(c.get("last_modify"))
-        relative_time = format_time_ago(c.get("last_modify"))
-        st.markdown(
-            f'<span class="text-muted table-text">{relative_time}</span>',
-            unsafe_allow_html=True,
-        )
+        # 6. Last Modify
+        with c6:
+            relative_time = format_time_ago(c.get("last_modify"))
+            st.markdown(
+                f'<span class="text-muted table-text">{relative_time}</span>',
+                unsafe_allow_html=True,
+            )
 
-    # 7. Actions
-    with c7:
-        ac1, ac2 = st.columns(2)
-        with ac1:
-            if st.button("✎", key=f"e{c['id']}", help="Edit"):
-                edit_dialog(c)
-        with ac2:
-            if st.button("✖", key=f"d{c['id']}", help="Delete"):
-                banish_dialog(c)
+        # 7. Actions
+        with c7:
+            ac1, ac2 = st.columns(2)
+            with ac1:
+                if st.button("✎", key=f"e{c['id']}", help="Edit"):
+                    edit_dialog(c)
+            with ac2:
+                if st.button("✖", key=f"d{c['id']}", help="Delete"):
+                    banish_dialog(c)
 
-    st.markdown("</div>", unsafe_allow_html=True)
-
-# Close container
-st.markdown("</div>", unsafe_allow_html=True)
+        if c.get("lore"):
+            st.caption(c["lore"])
+    st.markdown(
+        '<hr style="border: none; border-top: 2px solid var(--color-border-dark); margin: 8px 0;">',
+        unsafe_allow_html=True,
+    )
