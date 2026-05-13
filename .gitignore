@@ -24,6 +24,9 @@ backend/*.db
 
 # Tests
 backend/test_report.txt
+*_output.txt
+output.txt
+workflow_error.txt
 
 # Claude Code
 .claude/
