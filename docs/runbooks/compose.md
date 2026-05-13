@@ -2,6 +2,7 @@
 
 ## Files Covered
 - `compose.yaml`
+- `.github/workflows/ci.yml`
 
 Three-service stack: **backend** (FastAPI on port 8000), **redis** (Redis 7), **worker** (ARQ async worker).
 Redis must be healthy before either the backend or worker starts (`depends_on: condition: service_healthy`).
@@ -98,26 +99,91 @@ curl -si http://localhost:8000/ | grep -i content-type
 
 ---
 
-## Checking Rate-Limit Headers
+## Rate-Limit Headers
 
-If rate limiting is enabled on the backend, each response will include headers such as:
+> **Not implemented.** The backend does not currently apply rate limiting, so no
+> `X-RateLimit-*` headers are present on any response. If rate limiting is added
+> in future (e.g. via `slowapi`), update this section with the expected header
+> names, values, and the command to trigger a 429 response.
 
+---
+
+## Running Tests in CI
+
+### Current CI (pytest + ruff)
+
+The CI pipeline defined in `.github/workflows/ci.yml` runs on every push and pull
+request to `main`. It installs dependencies with `uv`, checks formatting with
+`ruff`, and runs the full test suite with `pytest`:
+
+```yaml
+- name: Run ruff (format check + lint)
+  run: |
+    uv run ruff format --check .
+    uv run ruff check .
+
+- name: Run tests
+  run: |
+    uv run python -m pytest
 ```
-X-RateLimit-Limit: 100
-X-RateLimit-Remaining: 99
-X-RateLimit-Reset: 1700000060
-```
 
-To inspect them:
+Run the same checks locally:
 
 ```bash
-curl -si http://localhost:8000/creatures | grep -i x-ratelimit
+cd backend
+uv run ruff format --check .
+uv run ruff check .
+uv run python -m pytest
 ```
 
-To trigger a rate-limit response (HTTP 429) and confirm the headers are present:
+### Adding Schemathesis (OpenAPI contract testing)
+
+[Schemathesis](https://schemathesis.readthedocs.io/) fuzzes every endpoint
+defined in the OpenAPI schema and checks that responses match their declared
+shapes. To add it:
+
+**1. Install Schemathesis:**
 
 ```bash
-for i in $(seq 1 110); do curl -si http://localhost:8000/creatures | grep -i "x-ratelimit\|HTTP/"; done
+cd backend
+uv add --dev schemathesis
+```
+
+**2. Run against the live stack:**
+
+```bash
+# Start the stack first
+docker compose up -d
+
+# Run Schemathesis against the OpenAPI schema
+uv run schemathesis run http://localhost:8000/openapi.json \
+  --checks all \
+  --hypothesis-max-examples 50
+```
+
+**3. Add a pytest-based Schemathesis test** (runs without a live server, using
+the FastAPI `TestClient`):
+
+```python
+# backend/tests/test_schemathesis.py
+import schemathesis
+from app.app import app
+
+schema = schemathesis.from_asgi("/openapi.json", app)
+
+@schema.parametrize()
+def test_api_schema(case):
+    response = case.call_asgi()
+    case.validate_response(response)
+```
+
+**4. Add to CI** — append a step to `.github/workflows/ci.yml`:
+
+```yaml
+- name: Run Schemathesis contract tests
+  run: |
+    source .venv/bin/activate
+    uv run python -m pytest tests/test_schemathesis.py -v
 ```
 
 ---
@@ -131,6 +197,8 @@ docker compose up --build -d backend
 # Rebuild everything
 docker compose up --build -d
 ```
+
+---
 
 ## Troubleshooting
 
