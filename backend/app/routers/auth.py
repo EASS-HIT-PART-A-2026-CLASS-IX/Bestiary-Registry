@@ -76,15 +76,7 @@ def update_avatar(
     current_user: CurrentUser,
     session: SessionDep,
 ) -> dict:
-    print(
-        f"[avatar] user={current_user.username} received base64 len={len(body.avatar)}"
-    )
     current_user.avatar = body.avatar
     session.add(current_user)
     session.commit()
-    session.refresh(current_user)
-    saved_len = len(current_user.avatar) if current_user.avatar else 0
-    print(
-        f"[avatar] DB save {'OK' if saved_len == len(body.avatar) else 'MISMATCH'} (stored len={saved_len})"
-    )
     return {"detail": "Avatar updated"}

@@ -40,25 +40,11 @@ async def generate_creature_lore_task(ctx: dict, creature_id: int) -> None:
     """Fetch creature from DB, generate lore via Gemini, save result back."""
     from app.services.lore import generate_lore
 
-    api_key_present = bool(os.getenv("GEMINI_API_KEY"))
-    print(
-        f"[lore_task] creature_id={creature_id} GEMINI_API_KEY={'set' if api_key_present else 'MISSING'}",
-        flush=True,
-    )
-
     def _run() -> None:
         with Session(engine) as session:
             creature = session.get(Creature, creature_id)
             if not creature:
-                print(
-                    f"[lore_task] creature_id={creature_id} not found in DB, skipping",
-                    flush=True,
-                )
                 return
-            print(
-                f"[lore_task] generating lore for '{creature.name}' ({creature.mythology} / {creature.creature_type})",
-                flush=True,
-            )
             try:
                 lore = generate_lore(
                     creature.name, creature.mythology, creature.creature_type
@@ -66,15 +52,8 @@ async def generate_creature_lore_task(ctx: dict, creature_id: int) -> None:
                 creature.lore = lore
                 session.add(creature)
                 session.commit()
-                print(
-                    f"[lore_task] lore saved for creature_id={creature_id} ({len(lore)} chars)",
-                    flush=True,
-                )
-            except Exception as exc:
-                print(
-                    f"[lore_task] ERROR generating lore for creature_id={creature_id}: {exc}",
-                    flush=True,
-                )
+            except Exception:
+                pass
 
     await asyncio.to_thread(_run)
 
