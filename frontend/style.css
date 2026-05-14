@@ -147,11 +147,6 @@ div[data-testid="column"]>div>div>div.element-container>div.stMarkdown>div {
 
 /* CREATURE CARDS — border comes from the inline-styled HTML div in dashboard.py */
 
-/* INPUT LABELS */
-div[data-testid="stTextInput"] label {
-    color: #ffffff !important;
-}
-
 /* TABS */
 button[data-baseweb="tab"] {
     color: #ffffff !important;

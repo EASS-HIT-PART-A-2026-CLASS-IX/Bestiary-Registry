@@ -17,7 +17,10 @@ def _decode_token_payload(token: str) -> dict:
 
 def show_auth_page():
     st.markdown(
-        '<style>[data-testid="InputInstructions"] { display: none !important; }</style>',
+        "<style>"
+        '[data-testid="InputInstructions"] { display: none !important; }'
+        'div[data-testid="stTextInput"] label { color: #ffffff !important; }'
+        "</style>",
         unsafe_allow_html=True,
     )
     st.markdown(
