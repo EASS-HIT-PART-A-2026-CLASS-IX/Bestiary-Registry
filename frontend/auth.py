@@ -62,8 +62,8 @@ def show_auth_page():
                         except Exception:
                             pass
                         st.rerun()
-                    except Exception as e:
-                        st.error(f"Login failed: {e}")
+                    except Exception:
+                        st.error("Incorrect username or password.")
 
         with register_tab:
             new_username = st.text_input("Username", key="reg_username")
