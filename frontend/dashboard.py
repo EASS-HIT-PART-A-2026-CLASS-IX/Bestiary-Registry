@@ -85,7 +85,7 @@ def format_time_ago(iso_str):
 
 
 def get_creatures():
-    return api_utils.get_creatures()
+    return api_utils.get_creatures(st.session_state.get("token"))
 
 
 def get_classes():

@@ -8,14 +8,14 @@ class User(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     username: str = Field(unique=True, index=True)
     hashed_password: str
-    role: str = Field(default="viewer")  # "admin" | "viewer"
+    role: str = Field(default="admin")  # "admin" | "viewer"
     avatar: Optional[str] = Field(default=None)
 
 
 class UserCreate(SQLModel):
     username: str
     password: str
-    role: str = "viewer"
+    role: str = "admin"
 
 
 class UserRead(SQLModel):
@@ -38,6 +38,7 @@ class CreatureBase(SQLModel):
 
 class Creature(CreatureBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
+    owner_id: Optional[int] = Field(default=None, foreign_key="app_user.id", index=True)
 
 
 class CreatureCreate(CreatureBase):
@@ -46,6 +47,7 @@ class CreatureCreate(CreatureBase):
 
 class CreatureRead(CreatureBase):
     id: int
+    owner_id: Optional[int] = None
 
 
 class CreatureClassBase(SQLModel):

@@ -30,22 +30,29 @@ def client_fixture(session: Session):
     app.dependency_overrides.clear()
 
 
-@pytest.fixture(name="admin_headers")
-def admin_headers_fixture(session: Session) -> dict:
+@pytest.fixture(name="admin_user")
+def admin_user_fixture(session: Session) -> User:
     user = User(username="lore_admin", hashed_password=hash_password("x"), role="admin")
     session.add(user)
     session.commit()
-    token = create_access_token({"sub": "lore_admin", "role": "admin"})
+    session.refresh(user)
+    return user
+
+
+@pytest.fixture(name="admin_headers")
+def admin_headers_fixture(admin_user: User) -> dict:
+    token = create_access_token({"sub": admin_user.username, "role": "admin"})
     return {"Authorization": f"Bearer {token}"}
 
 
-def _seed_creature(session: Session) -> int:
+def _seed_creature(session: Session, owner_id: int) -> int:
     c = Creature(
         name="Sphinx",
         mythology="Egyptian",
         creature_type="Guardian",
         danger_level=8,
         image_url="",
+        owner_id=owner_id,
     )
     session.add(c)
     session.commit()
@@ -56,19 +63,21 @@ def _seed_creature(session: Session) -> int:
 # ── happy path ────────────────────────────────────────────────────────────────
 
 
-def test_lore_returns_generated_text(session, client):
-    creature_id = _seed_creature(session)
+def test_lore_returns_generated_text(session, client, admin_user, admin_headers):
+    creature_id = _seed_creature(session, admin_user.id)
     expected = "The Sphinx stands eternal at the desert's edge, posing riddles to all who dare pass."
 
     with patch("app.services.lore.generate_lore", return_value=expected) as mock_fn:
-        r = client.post(f"/creatures/{creature_id}/lore")
+        r = client.post(f"/creatures/{creature_id}/lore", headers=admin_headers)
 
     assert r.status_code == 200
     assert r.json() == {"lore": expected}
     mock_fn.assert_called_once_with("Sphinx", "Egyptian", "Guardian")
 
 
-def test_lore_passes_correct_fields_to_gemini(session, client):
+def test_lore_passes_correct_fields_to_gemini(
+    session, client, admin_user, admin_headers
+):
     """Verify that the endpoint forwards name, mythology, and creature_type — not other fields."""
     c = Creature(
         name="Kirin",
@@ -76,6 +85,7 @@ def test_lore_passes_correct_fields_to_gemini(session, client):
         creature_type="Celestial",
         danger_level=2,
         image_url="",
+        owner_id=admin_user.id,
     )
     session.add(c)
     session.commit()
@@ -84,7 +94,7 @@ def test_lore_passes_correct_fields_to_gemini(session, client):
     with patch(
         "app.services.lore.generate_lore", return_value="A lucky omen."
     ) as mock_fn:
-        r = client.post(f"/creatures/{c.id}/lore")
+        r = client.post(f"/creatures/{c.id}/lore", headers=admin_headers)
 
     assert r.status_code == 200
     mock_fn.assert_called_once_with("Kirin", "Chinese", "Celestial")
@@ -93,21 +103,23 @@ def test_lore_passes_correct_fields_to_gemini(session, client):
 # ── 404 when creature doesn't exist ───────────────────────────────────────────
 
 
-def test_lore_404_for_missing_creature(client):
+def test_lore_404_for_missing_creature(client, admin_headers):
     with patch("app.services.lore.generate_lore", return_value="irrelevant"):
-        r = client.post("/creatures/99999/lore")
+        r = client.post("/creatures/99999/lore", headers=admin_headers)
     assert r.status_code == 404
 
 
 # ── 503 when API key is absent ────────────────────────────────────────────────
 
 
-def test_lore_503_when_api_key_missing(session, client, monkeypatch):
-    creature_id = _seed_creature(session)
+def test_lore_503_when_api_key_missing(
+    session, client, admin_user, admin_headers, monkeypatch
+):
+    creature_id = _seed_creature(session, admin_user.id)
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
 
     # Call through the real service (no mock) — should get 503
-    r = client.post(f"/creatures/{creature_id}/lore")
+    r = client.post(f"/creatures/{creature_id}/lore", headers=admin_headers)
     assert r.status_code == 503
     assert "GEMINI_API_KEY" in r.json()["detail"]
 
@@ -115,9 +127,9 @@ def test_lore_503_when_api_key_missing(session, client, monkeypatch):
 # ── Gemini SDK is invoked correctly ──────────────────────────────────────────
 
 
-def test_lore_calls_gemini_sdk(session, client, monkeypatch):
+def test_lore_calls_gemini_sdk(session, client, admin_user, admin_headers, monkeypatch):
     """Integration-level check: real service code hits the Client stub."""
-    creature_id = _seed_creature(session)
+    creature_id = _seed_creature(session, admin_user.id)
     monkeypatch.setenv("GEMINI_API_KEY", "test-key")
 
     from unittest.mock import MagicMock
@@ -127,7 +139,7 @@ def test_lore_calls_gemini_sdk(session, client, monkeypatch):
 
     with patch("google.genai.Client") as mock_cls:
         mock_cls.return_value.models.generate_content.return_value = mock_response
-        r = client.post(f"/creatures/{creature_id}/lore")
+        r = client.post(f"/creatures/{creature_id}/lore", headers=admin_headers)
 
     assert r.status_code == 200
     assert r.json()["lore"] == "Born of sand and starlight, the Sphinx endures."

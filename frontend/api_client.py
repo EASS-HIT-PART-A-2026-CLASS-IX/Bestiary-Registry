@@ -53,9 +53,10 @@ def update_avatar(avatar_b64: str, token: str) -> dict:
     return response.json()
 
 
-def get_creatures():
+def get_creatures(token: str = None):
     try:
-        response = requests.get(f"{API_URL}/creatures/")
+        headers = _auth_headers(token) if token else {}
+        response = requests.get(f"{API_URL}/creatures/", headers=headers)
         if response.status_code == 200:
             return response.json()
         return []

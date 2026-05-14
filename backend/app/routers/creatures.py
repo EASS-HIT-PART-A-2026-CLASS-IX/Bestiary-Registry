@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
 
-from app.auth import require_role
+from app.auth import CurrentUser, require_role
 from app.db import SessionDep
 from app.models import CreatureCreate, CreatureRead
 from app.services import creatures as service
@@ -14,9 +14,12 @@ _admin = Depends(require_role("admin"))
 
 @router.post("/", response_model=CreatureRead, dependencies=[_admin])
 async def create_creature_endpoint(
-    creature: CreatureCreate, session: SessionDep, request: Request
+    creature: CreatureCreate,
+    session: SessionDep,
+    request: Request,
+    current_user: CurrentUser,
 ) -> CreatureRead:
-    db_creature = service.create_creature(session, creature)
+    db_creature = service.create_creature(session, creature, current_user.id)
     try:
         arq = getattr(request.app.state, "arq", None)
         if arq:
@@ -27,13 +30,17 @@ async def create_creature_endpoint(
 
 
 @router.get("/", response_model=list[CreatureRead])
-def get_creatures_endpoint(session: SessionDep) -> list[CreatureRead]:
-    return service.list_creatures(session)
+def get_creatures_endpoint(
+    session: SessionDep, current_user: CurrentUser
+) -> list[CreatureRead]:
+    return service.list_creatures(session, current_user.id)
 
 
 @router.get("/export/csv")
-def export_creatures_csv_endpoint(session: SessionDep) -> StreamingResponse:
-    csv_content = service.export_creatures_csv(session)
+def export_creatures_csv_endpoint(
+    session: SessionDep, current_user: CurrentUser
+) -> StreamingResponse:
+    csv_content = service.export_creatures_csv(session, current_user.id)
     return StreamingResponse(
         iter([csv_content]),
         media_type="text/csv",
@@ -42,26 +49,35 @@ def export_creatures_csv_endpoint(session: SessionDep) -> StreamingResponse:
 
 
 @router.get("/{creature_id}", response_model=CreatureRead)
-def get_creature_endpoint(creature_id: int, session: SessionDep) -> CreatureRead:
-    return service.get_creature(session, creature_id)
+def get_creature_endpoint(
+    creature_id: int, session: SessionDep, current_user: CurrentUser
+) -> CreatureRead:
+    return service.get_creature(session, creature_id, current_user.id)
 
 
 @router.put("/{creature_id}", response_model=CreatureRead, dependencies=[_admin])
 def update_creature_endpoint(
-    creature_id: int, creature: CreatureCreate, session: SessionDep
+    creature_id: int,
+    creature: CreatureCreate,
+    session: SessionDep,
+    current_user: CurrentUser,
 ) -> CreatureRead:
-    return service.update_creature(session, creature_id, creature)
+    return service.update_creature(session, creature_id, creature, current_user.id)
 
 
 @router.delete("/{creature_id}", dependencies=[_admin])
-def delete_creature_endpoint(creature_id: int, session: SessionDep) -> dict:
-    service.delete_creature(session, creature_id)
+def delete_creature_endpoint(
+    creature_id: int, session: SessionDep, current_user: CurrentUser
+) -> dict:
+    service.delete_creature(session, creature_id, current_user.id)
     return {"detail": "creature deleted successfully"}
 
 
 @router.post("/{creature_id}/lore")
-def generate_lore_endpoint(creature_id: int, session: SessionDep) -> dict:
-    creature = service.get_creature(session, creature_id)
+def generate_lore_endpoint(
+    creature_id: int, session: SessionDep, current_user: CurrentUser
+) -> dict:
+    creature = service.get_creature(session, creature_id, current_user.id)
     lore = lore_service.generate_lore(
         creature.name, creature.mythology, creature.creature_type
     )

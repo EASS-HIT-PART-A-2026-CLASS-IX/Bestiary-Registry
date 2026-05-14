@@ -69,7 +69,7 @@ def test_get_creatures(client: TestClient, admin_headers):
     }
     client.post("/creatures/", json=payload, headers=admin_headers)
 
-    response = client.get("/creatures/")
+    response = client.get("/creatures/", headers=admin_headers)
     assert response.status_code == 200
     data = response.json()
     names = [c["name"] for c in data]
@@ -121,7 +121,7 @@ def test_delete_creature(client: TestClient, admin_headers):
     assert response.status_code == 200
     assert response.json() == {"detail": "creature deleted successfully"}
 
-    get_res = client.get("/creatures/")
+    get_res = client.get("/creatures/", headers=admin_headers)
     current_ids = [c["id"] for c in get_res.json()]
     assert creature_id not in current_ids
 
@@ -129,8 +129,8 @@ def test_delete_creature(client: TestClient, admin_headers):
 # --- Negative Tests (404 Not Found) ---
 
 
-def test_get_creature_not_found(client: TestClient):
-    response = client.get("/creatures/99999")
+def test_get_creature_not_found(client: TestClient, admin_headers):
+    response = client.get("/creatures/99999", headers=admin_headers)
     assert response.status_code == 404
     assert response.json()["detail"] == "Creature not found"
 
@@ -197,7 +197,7 @@ def test_create_then_list(client: TestClient, admin_headers):
         headers=admin_headers,
     )
 
-    response = client.get("/creatures/")
+    response = client.get("/creatures/", headers=admin_headers)
     assert response.status_code == 200
     names = [c["name"] for c in response.json()]
     assert name in names
@@ -231,6 +231,6 @@ def test_update_then_read_reflects_change(client: TestClient, admin_headers):
     )
 
     # 3. Read
-    res = client.get(f"/creatures/{cid}")
+    res = client.get(f"/creatures/{cid}", headers=admin_headers)
     assert res.status_code == 200
     assert res.json()["name"] == "V2"  # Should match V2

@@ -165,9 +165,9 @@ def test_admin_can_create_and_delete(session, client):
     assert r.status_code == 200
 
 
-def test_get_creatures_is_public(client):
+def test_get_creatures_requires_auth(client):
     r = client.get("/creatures/")
-    assert r.status_code == 200
+    assert r.status_code == 401
 
 
 # ── change password tests ─────────────────────────────────────────────────────

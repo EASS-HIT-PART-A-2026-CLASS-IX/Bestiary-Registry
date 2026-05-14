@@ -20,6 +20,7 @@ def create_db_and_tables():
 _MIGRATIONS = {
     "creature": [
         ("lore", "TEXT"),
+        ("owner_id", "INTEGER"),
     ],
     "app_user": [
         ("avatar", "TEXT"),

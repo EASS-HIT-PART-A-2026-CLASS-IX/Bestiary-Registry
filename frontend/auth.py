@@ -78,7 +78,7 @@ def show_auth_page():
                     st.error("Username and password are required.")
                 else:
                     try:
-                        api_client.register(new_username, new_password, "viewer")
+                        api_client.register(new_username, new_password, "admin")
                         st.success("Account created! You can now log in.")
                     except Exception as e:
                         st.error(f"Registration failed: {e}")

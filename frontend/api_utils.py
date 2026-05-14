@@ -3,8 +3,8 @@ import api_client
 
 
 @st.cache_data(ttl=2, show_spinner=False)
-def get_creatures():
-    return api_client.get_creatures()
+def get_creatures(token: str = None):
+    return api_client.get_creatures(token)
 
 
 @st.cache_data(ttl=2, show_spinner=False)
