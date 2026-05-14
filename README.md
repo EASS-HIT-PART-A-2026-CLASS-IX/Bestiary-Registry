@@ -1,35 +1,34 @@
 # 🐉 Bestiary Registry - Mythical Creature Management System
 
 ![Status](https://img.shields.io/badge/Status-Active-success)
-![Python](https://img.shields.io/badge/Python-3.11%2B-blue)
+![Python](https://img.shields.io/badge/Python-3.13-blue)
 ![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688)
 ![Streamlit](https://img.shields.io/badge/Frontend-Streamlit-FF4B4B)
+![Docker](https://img.shields.io/badge/Orchestration-Docker_Compose-2496ED)
 
-This project implements **EX1 (FastAPI Backend)** and **EX2 (Streamlit Frontend)**. It is a registry for managing a "Bestiary" of mythical creatures, allowing users to catalogue and view entities across different mythologies.
+This project implements **EX1 (FastAPI Backend)**, **EX2 (Streamlit Frontend)**, and **EX3 (Orchestrated Microservices)**. It is a registry for managing a "Bestiary" of mythical creatures, allowing users to catalogue and view entities across different mythologies.
 
-## Important Links
-*   **Backend (Render)**: [https://bestiary-registry.onrender.com](https://bestiary-registry.onrender.com)
-*   **Frontend (Streamlit)**: [https://bestiary-registry.streamlit.app](https://bestiary-registry.streamlit.app)
-*   **API Documentation**: [https://bestiary-registry.onrender.com/docs](https://bestiary-registry.onrender.com/docs)
+## Backend
 
-## Backend - What Exists
 *   **FastAPI** backend with full CRUD support for creatures and classes.
-*   **SQLite** used for persistence.
-*   Returns standard JSON responses with appropriate HTTP status codes (e.g., 404 for missing resources).
+*   **SQLite** via **SQLModel** for persistence, with additive column migrations on startup.
+*   **JWT authentication** with bcrypt-hashed passwords and role-based access control (admin/viewer).
+*   Lore generation enqueued asynchronously via **ARQ** on creature creation — no blocking the HTTP response.
 
-## Frontend - What the User Can Do
+## Frontend
+
 *   Implemented using **Streamlit**.
-*   View existing registry data fetched from the backend.
-*   Supports full CRUD workflows for creatures and classes via the frontend.
-
-It features persistent data management, dynamic real-time filtering, automated avatar generation, and a responsive dark-mode UI.
+*   Full CRUD workflows for creatures and classes via a custom dark-mode dashboard.
+*   JWT session persisted in `st.query_params` so the session survives page refreshes.
+*   Real-time name search, multi-faceted filtering, danger-level metrics, and CSV export.
+*   Per-user avatar upload stored in the database and displayed in the sidebar.
 
 ---
 
 ## Application Showcase
 
 ### 1. The Dashboard
-The central command center for monitoring all registered entities. Features real-time metrics, a responsive data grid, and quick actions. 
+The central command center for monitoring all registered entities. Features real-time metrics, a responsive data grid, and quick actions.
 
 <p align="center">
 <img src="frontend/pictures/dashboard_pic.png" alt="dashboard preview" width="700" >
@@ -38,7 +37,7 @@ The central command center for monitoring all registered entities. Features real
 ### 2. Summoning New Entities
 A streamlined workflow for adding new creatures to the registry.
 *   **Step 1: Initiation** - Launching the summon dialog.
-    
+
 <p align="center">
   <img src="frontend/pictures/create_creature_full_screen_pic.png" alt="Initiation" width="700">
 </p>
@@ -64,7 +63,7 @@ Drill down into the data using powerful multi-select filters for Class, Mytholog
 </p>
 
 ### 5. System Settings
-Manage global configurations, including the creation and customization of Creature Classes/Categories.
+Manage global configurations, including creature class management, avatar upload, and CSV export.
 
 <p align="center">
   <img src="frontend/pictures/settings_pic.png" alt="Settings" width="700">
@@ -74,15 +73,15 @@ Manage global configurations, including the creation and customization of Creatu
 
 ## Key Features
 
-*   **FastAPI Backend**: Backend implemented using **FastAPI** with auto-generated Swagger/OpenAPI documentation.
-*   **Persistent Storage**: Uses **SQLite** with **SQLModel** (ORM) for local data persistence.
-*   **Streamlit Frontend**: Streamlit-based frontend with custom CSS styling and interactive UI components.
-*   **Real-Time Exploration**:
-    *   **Instant Search**: Filter by name as you type.
-    *   **Multi-Faceted Filtering**: Filter by multiple categories simultaneously.
-*   **Realm Map**: Visual territory mapping.
-*   **Avatars**: Uses DiceBear identicon API. Images are external URLs.
-*   **Testing**: API tests implemented using pytest and FastAPI TestClient.
+*   **FastAPI Backend**: Full CRUD API with auto-generated Swagger/OpenAPI documentation.
+*   **JWT Authentication**: bcrypt-hashed passwords, HS256 tokens, role-based access (admin/viewer). Mutating endpoints require the `admin` role.
+*   **Async Lore Generation**: On creature creation, a `generate_creature_lore_task` job is enqueued to Redis. The ARQ worker picks it up, calls the Gemini LLM, and writes the lore back to the database — without blocking the API response.
+*   **Docker Compose Orchestration**: Three-service stack (backend, Redis, worker) with health checks and startup ordering.
+*   **Persistent Storage**: SQLite with SQLModel ORM. Schema evolves via additive migrations — no `.db` files committed to git.
+*   **Streamlit Frontend**: Custom CSS dark-mode UI with interactive dialogs, metrics, and real-time filtering.
+*   **Real-Time Exploration**: Instant name search and multi-faceted filtering by class, mythology, habitat, and danger level.
+*   **CSV Export**: Download the full creature registry as a CSV file from the Settings page.
+*   **Realm Map**: Static map visualization page.
 
 ---
 
@@ -90,101 +89,184 @@ Manage global configurations, including the creation and customization of Creatu
 
 | Component | Technologies |
 | :--- | :--- |
-| **Backend** | Python 3.11+, FastAPI, Uvicorn, SQLModel (Pydantic + SQLAlchemy) |
-| **Frontend** | Streamlit, Requests, Custom CSS, `streamlit-keyup` |
-| **Database** | SQLite (Local file: `creatures.db`) |
-| **Tooling** | `uv` (Package Management), Pytest, Ruff (Linting) |
+| **Backend** | Python 3.13, FastAPI, Uvicorn, SQLModel (Pydantic + SQLAlchemy) |
+| **Frontend** | Streamlit 1.57, Requests, Custom CSS, `streamlit-keyup` |
+| **Database** | SQLite (`creatures.db`), additive migrations via `PRAGMA table_info` |
+| **Auth** | JWT (`python-jose`, HS256), bcrypt (`passlib`) |
+| **Async Worker** | ARQ, Redis 7 |
+| **LLM Microservice** | Google Gemini (`gemini-2.5-flash`, `google-genai` SDK) |
+| **Orchestration** | Docker Compose (3 services: backend, redis, worker) |
+| **Tooling** | `uv` (package management), pytest, ruff |
 
 ---
 
 ## 📂 Project Structure
 
 ```text
-EX1_FastAPI_Foundations/
+Bestiary-Registry/
+├── compose.yaml                  # Three-service Docker Compose stack
+├── README.md
 ├── backend/
+│   ├── Dockerfile
+│   ├── main.py                   # Uvicorn entry point
+│   ├── pyproject.toml
+│   ├── seed_classes.py           # Seeds 8 default creature classes (idempotent)
+│   ├── update_classes.py         # Dev utility: randomise creature types
+│   ├── creatures.http            # HTTP playground for manual API testing
 │   ├── app/
-│   │   ├── routers/       # API Route modules (creatures, classes)
-│   │   ├── services/      # Business logic layer
-│   │   ├── models.py      # Database schemas & Pydantic models
-│   │   └── db.py          # Database connection & session management
-│   ├── tests/             # Backend automated tests
-│   ├── main.py            # Application entry point
-│   └── pyproject.toml     # Backend dependencies
+│   │   ├── app.py                # FastAPI instance, lifespan, ARQ pool
+│   │   ├── auth.py               # JWT creation, bcrypt, role dependency
+│   │   ├── db.py                 # SQLite engine, migrations, default admin seed
+│   │   ├── models.py             # SQLModel schemas: Creature, User, classes
+│   │   ├── worker.py             # ARQ WorkerSettings, lore task, refresh task
+│   │   ├── routers/
+│   │   │   ├── auth.py           # POST /auth/token, GET /auth/me, PUT /auth/me/*
+│   │   │   ├── creatures.py      # GET/POST/PUT/DELETE /creatures, CSV export
+│   │   │   └── classes.py        # GET/POST/PUT/DELETE /classes
+│   │   └── services/
+│   │       ├── creatures.py      # CRUD logic, auto-avatar, timestamps
+│   │       ├── classes.py        # CRUD logic, cascade rename
+│   │       └── lore.py           # Gemini LLM call (gemini-2.5-flash)
+│   └── tests/
+│       ├── test_creatures.py
+│       ├── test_creature_classes.py
+│       ├── test_auth.py
+│       ├── test_lore.py
+│       ├── test_worker.py        # pytest.mark.anyio async worker tests
+│       ├── test_export.py
+│       └── test_health.py
 ├── frontend/
-│   ├── tests/             # Frontend automated tests
-│   ├── pictures/          # Static assets
-│   ├── dashboard.py       # Main Application Entry Point
-│   ├── sidebar.py         # Navigation component
-│   ├── settings.py        # Settings & Configuration page
-│   ├── realm_map.py       # Map visualization module
-│   └── style.css          # Global visual styling/theming
-└── README.md
+│   ├── dashboard.py              # Main Streamlit app
+│   ├── auth.py                   # Login/register page
+│   ├── sidebar.py                # Navigation + avatar display
+│   ├── settings.py               # Class management, avatar upload, CSV export
+│   ├── realm_map.py              # Static map page
+│   ├── api_client.py             # HTTP client wrapper
+│   ├── api_utils.py              # Cached API layer (2s TTL)
+│   ├── style.css                 # Custom dark-theme CSS
+│   ├── requirements.txt          # Standalone frontend deps
+│   ├── pictures/                 # Screenshot assets for README
+│   └── tests/
+│       ├── test_dashboard.py
+│       └── test_workflow.py
+├── scripts/
+│   └── refresh.py                # Standalone creature refresh script (ARQ + Redis)
+└── docs/
+    ├── EX3-notes.md              # Architecture, Redis trace, JWT docs
+    └── runbooks/
+        └── compose.md            # Launch, health checks, CI instructions
 ```
 
 ---
 
-## Quick Start Guide
+## Quick Start
 
-### Prerequisites
-*   Python 3.11 or higher
-*   `uv` package manager (recommended) or `pip`
+### Option A — Docker Compose (recommended)
 
-### 1. Backend Setup
-Initialize the backend environment and start the API server.
+Runs the full stack: FastAPI backend, Redis, and ARQ worker.
 
-```powershell
+```bash
+# Required: set your Gemini API key
+export GEMINI_API_KEY=your-key-here
+
+# Optional but recommended for production: set a real secret
+export SECRET_KEY=$(python -c "import secrets; print(secrets.token_hex(32))")
+
+# Build and start all services
+docker compose up --build -d
+
+# Check all services are healthy
+docker compose ps
+
+# View logs
+docker compose logs -f
+```
+
+The API is available at [http://localhost:8000](http://localhost:8000).  
+Start the Streamlit frontend separately (see Option B step 2).
+
+For detailed runbook instructions, health check verification, and troubleshooting, see [`docs/runbooks/compose.md`](docs/runbooks/compose.md).
+
+---
+
+### Option B — Local (without Docker)
+
+#### 1. Backend
+
+```bash
 cd backend
-uv sync               # Install dependencies
-uv run python main.py # Start server at http://localhost:8000
+uv sync                    # Install dependencies
+uv run python main.py      # Starts API at http://localhost:8000
 ```
 
-### 2. Frontend Setup
-Launch the dashboard interface. (Open a new terminal window).
+#### 2. Frontend
 
-```powershell
-# Ensure you are in the project root
-cd backend 
+Open a new terminal:
+
+```bash
+cd backend
 uv run python -m streamlit run ../frontend/dashboard.py
+# Dashboard at http://localhost:8501
 ```
-*The dashboard will auto-launch at `http://localhost:8501`*
 
----
+#### 3. Worker (optional — required for async lore generation)
 
-## Docker (Alternative Run Method)
-The backend is dockerized. A `Dockerfile` exists and builds successfully.
+Requires a running Redis instance (`redis://localhost:6379`):
 
-If you prefer running via Docker (backend only):
-```powershell
-# Run from 'backend' directory
-docker build -t bestiary-backend .
-docker run -d -p 8000:8000 bestiary-backend
+```bash
+cd backend
+uv run arq app.worker.WorkerSettings
 ```
 
 ---
 
 ## API Documentation
 
-Once the backend is running, full interactive documentation is available:
+With the backend running:
+
 *   **Swagger UI**: [http://localhost:8000/docs](http://localhost:8000/docs)
 *   **ReDoc**: [http://localhost:8000/redoc](http://localhost:8000/redoc)
 
-## Testing
-Includes automated API tests using `pytest` and `FastAPI TestClient`, verified to run successfully from the backend environment.
+Default admin credentials (seeded on first startup): `admin` / `admin123`
 
-Run the full verified test suite:
-```powershell
-uv run python -m pytest tests/ ../frontend/tests/
-# (Run from 'backend' directory)
+---
+
+## Testing
+
+```bash
+cd backend
+
+# Full suite (backend + frontend tests)
+uv run python -m pytest tests/ ../frontend/tests/ -v
+
+# Backend only
+uv run python -m pytest tests/ -v
 ```
-*Tests pass successfully.*
+
+Tests use FastAPI `TestClient` with an in-memory SQLite database — no running server or Redis required.
+
+---
 
 ## Code Quality
-Uses `ruff` for code formatting and linting.
 
-```powershell
+```bash
+cd backend
 uv run ruff check .
 uv run ruff format --check .
 ```
 
-## 📝 Note
-This project serves as a foundation for further course work.
+CI runs ruff and the full pytest suite on every push to `main` (`.github/workflows/ci.yml`).
+
+---
+
+## AI Assistance
+
+This project was developed with the assistance of **Claude** (Anthropic) as an AI pair-programming tool. Claude was used throughout the development process to:
+
+- Scaffold and iterate on FastAPI endpoints, SQLModel schemas, and service logic.
+- Design and debug the ARQ async worker, Redis idempotency pattern, and Docker Compose configuration.
+- Build and refine the Streamlit frontend, including the JWT auth flow, dialog state management, and custom CSS theming.
+- Write and extend the pytest test suite, including async worker tests using `pytest-anyio`.
+- Author technical documentation (`docs/EX3-notes.md`, `docs/runbooks/compose.md`).
+
+All generated code was reviewed, tested, and integrated by the developer. The final architecture, feature decisions, and submission are the developer's own work.
