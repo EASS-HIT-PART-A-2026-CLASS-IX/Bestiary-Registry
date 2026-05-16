@@ -28,5 +28,10 @@ dependencies = [
     "uvicorn[standard]>=0.38.0",
 ]
 
+[dependency-groups]
+dev = [
+    "schemathesis>=3.38.0",
+]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
