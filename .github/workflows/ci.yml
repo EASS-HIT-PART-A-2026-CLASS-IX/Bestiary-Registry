@@ -53,6 +53,6 @@ jobs:
           source .venv/bin/activate
           uv run --group dev schemathesis run http://localhost:8000/openapi.json \
             --checks all \
-            --hypothesis-max-examples 50
+            --max-examples 50
         env:
           SECRET_KEY: ci-test-secret-key-not-for-production
