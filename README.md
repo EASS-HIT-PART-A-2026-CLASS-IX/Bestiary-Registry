@@ -8,6 +8,12 @@
 
 This project implements **EX1 (FastAPI Backend)**, **EX2 (Streamlit Frontend)**, and **EX3 (Orchestrated Microservices)**. It is a registry for managing a "Bestiary" of mythical creatures, allowing users to catalogue and view entities across different mythologies.
 
+## Important Links
+
+- **Backend (Render):** https://bestiary-registry.onrender.com
+- **Frontend (Streamlit Cloud):** https://bestiary-registry.streamlit.app
+- **API Documentation:** https://bestiary-registry.onrender.com/docs
+
 ## Backend
 
 *   **FastAPI** backend with full CRUD support for creatures and classes.
@@ -81,6 +87,7 @@ Manage global configurations, including creature class management, avatar upload
 *   **Streamlit Frontend**: Custom CSS dark-mode UI with interactive dialogs, metrics, and real-time filtering.
 *   **Real-Time Exploration**: Instant name search and multi-faceted filtering by class, mythology, habitat, and danger level.
 *   **CSV Export**: Download the full creature registry as a CSV file from the Settings page.
+*   **Avatars**: Auto-generated using DiceBear identicon API, stored as external URLs in the database.
 *   **Realm Map**: Static map visualization page.
 
 ---
@@ -161,61 +168,37 @@ Bestiary-Registry/
 
 ## Quick Start
 
-### Option A — Docker Compose (recommended)
+### Prerequisites
 
-Runs the full stack: FastAPI backend, Redis, and ARQ worker.
+Copy `.env.example` to `.env` and fill in the required values:
 
-```bash
-# Required: set your Gemini API key
-export GEMINI_API_KEY=your-key-here
+```powershell
+cp .env.example .env
+```
 
-# Optional but recommended for production: set a real secret
-export SECRET_KEY=$(python -c "import secrets; print(secrets.token_hex(32))")
+Edit `.env` and set:
+- `GEMINI_API_KEY` — get it from [Google AI Studio](https://aistudio.google.com/app/apikey)
+- `SECRET_KEY` — generate with:
+```powershell
+ python -c "import secrets; print(secrets.token_hex(32))"
+ ```
 
-# Build and start all services
+
+The other variables have sensible defaults for local Docker and don't need to be changed.
+
+### Running the project
+
+**Step 1 — Start all backend services** (API + Redis + Worker):
+```powershell
 docker compose up --build -d
-
-# Check all services are healthy
-docker compose ps
-
-# View logs
-docker compose logs -f
+docker compose ps  # verify all services are running
 ```
 
-The API is available at [http://localhost:8000](http://localhost:8000).  
-Start the Streamlit frontend separately (see Option B step 2).
-
-For detailed runbook instructions, health check verification, and troubleshooting, see [`docs/runbooks/compose.md`](docs/runbooks/compose.md).
-
----
-
-### Option B — Local (without Docker)
-
-#### 1. Backend
-
-```bash
-cd backend
-uv sync                    # Install dependencies
-uv run python main.py      # Starts API at http://localhost:8000
-```
-
-#### 2. Frontend
-
-Open a new terminal:
-
-```bash
+**Step 2 — Start the frontend** (open a new terminal):
+```powershell
 cd backend
 uv run python -m streamlit run ../frontend/dashboard.py
-# Dashboard at http://localhost:8501
-```
-
-#### 3. Worker (optional — required for async lore generation)
-
-Requires a running Redis instance (`redis://localhost:6379`):
-
-```bash
-cd backend
-uv run arq app.worker.WorkerSettings
+# Dashboard available at http://localhost:8501
 ```
 
 ---
@@ -233,17 +216,12 @@ Default admin credentials (seeded on first startup): `admin` / `admin123`
 
 ## Testing
 
-```bash
+```powershell
 cd backend
-
-# Full suite (backend + frontend tests)
-uv run python -m pytest tests/ ../frontend/tests/ -v
-
-# Backend only
 uv run python -m pytest tests/ -v
 ```
 
-Tests use FastAPI `TestClient` with an in-memory SQLite database — no running server or Redis required.
+Tests use FastAPI TestClient with an in-memory SQLite database — no running server or Redis required.
 
 ---
 

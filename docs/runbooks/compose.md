@@ -101,10 +101,42 @@ curl -si http://localhost:8000/ | grep -i content-type
 
 ## Rate-Limit Headers
 
-> **Not implemented.** The backend does not currently apply rate limiting, so no
-> `X-RateLimit-*` headers are present on any response. If rate limiting is added
-> in future (e.g. via `slowapi`), update this section with the expected header
-> names, values, and the command to trigger a 429 response.
+The backend uses `slowapi` to enforce a limit of **100 requests per minute per IP**.
+Every response includes three headers:
+
+| Header | Meaning |
+| :--- | :--- |
+| `X-RateLimit-Limit` | Maximum requests allowed in the window (100) |
+| `X-RateLimit-Remaining` | Requests remaining in the current window |
+| `X-RateLimit-Reset` | Unix timestamp when the window resets |
+
+### Verify headers on a normal request
+
+```bash
+curl -si http://localhost:8000/ | grep -i x-ratelimit
+```
+
+Expected output:
+
+```
+x-ratelimit-limit: 100
+x-ratelimit-remaining: 99
+x-ratelimit-reset: 1234567890
+```
+
+### Trigger a 429 Too Many Requests
+
+Send 101 requests in rapid succession to exhaust the window:
+
+```bash
+for i in $(seq 1 101); do curl -si http://localhost:8000/ | grep -E "HTTP/|x-ratelimit"; done
+```
+
+The 101st response should return:
+
+```
+HTTP/1.1 429 Too Many Requests
+```
 
 ---
 
