@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, Response
 from fastapi.responses import StreamingResponse
 
 from app.auth import CurrentUser, require_role
 from app.db import SessionDep
+from app.limiter import limiter
 from app.models import CreatureCreate, CreatureRead
 from app.services import creatures as service
 from app.services import lore as lore_service
@@ -30,8 +31,9 @@ async def create_creature_endpoint(
 
 
 @router.get("/", response_model=list[CreatureRead])
+@limiter.limit("100/minute")
 def get_creatures_endpoint(
-    session: SessionDep, current_user: CurrentUser
+    request: Request, response: Response, session: SessionDep, current_user: CurrentUser
 ) -> list[CreatureRead]:
     return service.list_creatures(session, current_user.id)
 

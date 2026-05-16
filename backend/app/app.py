@@ -1,15 +1,13 @@
 import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from arq.connections import create_pool, RedisSettings
 from app.db import create_db_and_tables, run_migrations, seed_default_admin
+from app.limiter import limiter
 from app.routers import auth, creatures, classes
-
-limiter = Limiter(key_func=get_remote_address, default_limits=["100/minute"])
 
 
 @asynccontextmanager
