@@ -296,6 +296,9 @@ with col_b:
 if st.session_state.get("show_summon_dialog"):
     summon_dialog()
 
+if "pending_edit_creature" in st.session_state:
+    edit_dialog(st.session_state.pop("pending_edit_creature"))
+
 st.write("")
 
 # Metrics Logic
@@ -641,7 +644,9 @@ for c in filtered:
             ac1, ac2 = st.columns(2)
             with ac1:
                 if st.button("✎", key=f"e{c['id']}", help="Edit"):
-                    edit_dialog(c)
+                    st.session_state["show_summon_dialog"] = False
+                    st.session_state["pending_edit_creature"] = c
+                    st.rerun()
             with ac2:
                 if st.button("✖", key=f"d{c['id']}", help="Delete"):
                     banish_dialog(c)
