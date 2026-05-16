@@ -35,3 +35,24 @@ jobs:
         run: |
           source .venv/bin/activate
           uv run python -m pytest
+
+      - name: Start API server for Schemathesis
+        run: |
+          source .venv/bin/activate
+          uv run uvicorn app.app:app --host 0.0.0.0 --port 8000 &
+          echo "Waiting for API to be ready..."
+          for i in $(seq 1 30); do
+            curl -s http://localhost:8000/ && break
+            sleep 1
+          done
+        env:
+          SECRET_KEY: ci-test-secret-key-not-for-production
+
+      - name: Run Schemathesis
+        run: |
+          source .venv/bin/activate
+          uv run --group dev schemathesis run http://localhost:8000/openapi.json \
+            --checks all \
+            --hypothesis-max-examples 50
+        env:
+          SECRET_KEY: ci-test-secret-key-not-for-production
