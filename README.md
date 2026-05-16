@@ -33,46 +33,56 @@ This project implements **EX1 (FastAPI Backend)**, **EX2 (Streamlit Frontend)**,
 
 ## Application Showcase
 
-### 1. The Dashboard
+### 1. Login and Authentication
+Users can log in with their credentials, which are authenticated against the FastAPI backend. JWT tokens are stored in the URL query parameters to maintain session state across page refreshes.
+
+<p align="center">
+<img src="frontend/pictures/login_screen_pic.png" alt="dashboard preview" width="700" >
+</p>
+
+### 2. The Dashboard
 The central command center for monitoring all registered entities. Features real-time metrics, a responsive data grid, and quick actions.
 
 <p align="center">
 <img src="frontend/pictures/dashboard_pic.png" alt="dashboard preview" width="700" >
 </p>
 
-### 2. Summoning New Entities
+### 3. Summoning New Entities
 A streamlined workflow for adding new creatures to the registry.
-*   **Step 1: Initiation** - Launching the summon dialog.
+
 
 <p align="center">
   <img src="frontend/pictures/create_creature_full_screen_pic.png" alt="Initiation" width="700">
 </p>
 
-*   **Step 2: Details** - Filling in creature attributes (Class, Mythology, Danger Level).
 
-<p align="center">
-  <img src="frontend/pictures/create_creature2_pic.png" alt="Confirmation" width="300" style="border: 1px solid #000;">
-</p>
-
-### 3. Entity Management (Editing)
+### 4. Entity Management (Editing)
 Modify existing records with ease, updating attributes like Danger Level, Habitat, or Class as the lore evolves.
 
 <p align="center">
   <img src="frontend/pictures/edit_creature_pic.png" alt="Editing" width="300" style="border: 1px solid #000;">
 </p>
 
-### 4. Advanced Filtering
+### 5. Advanced Filtering
 Drill down into the data using powerful multi-select filters for Class, Mythology, and Danger Level ranges.
 
 <p align="center">
   <img src="frontend/pictures/filter_pic.png" alt="Filtering" width="300" style="border: 1px solid #000;">
 </p>
 
-### 5. System Settings
+### 6. System Settings
 Manage global configurations, including creature class management, avatar upload, and CSV export.
 
+#### Creature Classes:
+
 <p align="center">
-  <img src="frontend/pictures/settings_pic.png" alt="Settings" width="700">
+  <img src="frontend/pictures/settings_pic_classes.png" alt="Settings" width="700">
+</p>
+
+#### General Settings:
+
+<p align="center">
+  <img src="frontend/pictures/settings_pic_general.png" alt="Settings" width="700">
 </p>
 
 ---
@@ -89,6 +99,7 @@ Manage global configurations, including creature class management, avatar upload
 *   **CSV Export**: Download the full creature registry as a CSV file from the Settings page.
 *   **Avatars**: Auto-generated using DiceBear identicon API, stored as external URLs in the database.
 *   **Realm Map**: Static map visualization page.
+*   **Rate Limiting**: 100 requests per minute per IP via slowapi. `X-RateLimit-*` headers returned on creature list endpoint.
 
 ---
 
@@ -126,6 +137,7 @@ Bestiary-Registry/
 │   │   ├── db.py                 # SQLite engine, migrations, default admin seed
 │   │   ├── models.py             # SQLModel schemas: Creature, User, classes
 │   │   ├── worker.py             # ARQ WorkerSettings, lore task, refresh task
+│   │   ├── limiter.py            # slowapi rate limiter instance
 │   │   ├── routers/
 │   │   │   ├── auth.py           # POST /auth/token, GET /auth/me, PUT /auth/me/*
 │   │   │   ├── creatures.py      # GET/POST/PUT/DELETE /creatures, CSV export
@@ -157,7 +169,8 @@ Bestiary-Registry/
 │       ├── test_dashboard.py
 │       └── test_workflow.py
 ├── scripts/
-│   └── refresh.py                # Standalone creature refresh script (ARQ + Redis)
+│   ├── refresh.py                # Standalone creature refresh script (ARQ + Redis)
+│   └── demo.sh                   # End-to-end demo script for graders
 └── docs/
     ├── EX3-notes.md              # Architecture, Redis trace, JWT docs
     └── runbooks/
@@ -222,6 +235,18 @@ uv run python -m pytest tests/ -v
 ```
 
 Tests use FastAPI TestClient with an in-memory SQLite database — no running server or Redis required.
+
+---
+
+## Demo Script
+
+Run the full end-to-end demo that walks through all major features:
+
+```powershell
+bash scripts/demo.sh
+```
+
+Prerequisites: Docker Compose must be running (`docker compose up -d`) before running the demo.
 
 ---
 
