@@ -207,7 +207,9 @@ def render_settings():
             st.markdown("#### Export Data")
             st.caption("Download all creatures as a CSV file.")
             try:
-                csv_bytes = api_client.export_creatures_csv()
+                csv_bytes = api_client.export_creatures_csv(
+                    st.session_state.get("token")
+                )
                 st.download_button(
                     "⬇ Export Creatures CSV",
                     data=csv_bytes,

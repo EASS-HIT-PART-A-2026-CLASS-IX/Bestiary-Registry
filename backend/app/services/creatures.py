@@ -12,6 +12,7 @@ _CSV_FIELDS = [
     "creature_type",
     "danger_level",
     "habitat",
+    "lore",
     "last_modify",
     "image_url",
 ]

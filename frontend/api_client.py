@@ -86,8 +86,9 @@ def generate_lore(creature_id: int) -> str:
     return response.json()["lore"]
 
 
-def export_creatures_csv() -> bytes:
-    response = requests.get(f"{API_URL}/creatures/export/csv")
+def export_creatures_csv(token: str = None) -> bytes:
+    headers = _auth_headers(token) if token else {}
+    response = requests.get(f"{API_URL}/creatures/export/csv", headers=headers)
     response.raise_for_status()
     return response.content
 
