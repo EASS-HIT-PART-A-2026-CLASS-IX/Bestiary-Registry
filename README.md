@@ -258,7 +258,7 @@ uv run ruff check .
 uv run ruff format --check .
 ```
 
-CI runs ruff and the full pytest suite on every push to `main` (`.github/workflows/ci.yml`).
+CI runs ruff, the full pytest suite, and Schemathesis API tests on every push to `main` (`.github/workflows/ci.yml`).
 
 ---
 

@@ -1,4 +1,5 @@
 from typing import Optional
+from pydantic import field_validator
 from sqlmodel import SQLModel, Field
 
 
@@ -34,6 +35,13 @@ class CreatureBase(SQLModel):
     last_modify: str = Field(default="Unknown")
     image_url: str = Field(default="")
     lore: Optional[str] = Field(default=None)
+
+    @field_validator("danger_level", mode="before")
+    @classmethod
+    def danger_level_must_be_int(cls, v: object) -> object:
+        if isinstance(v, bool):
+            raise ValueError("danger_level must be an integer, not a boolean")
+        return v
 
 
 class Creature(CreatureBase, table=True):

@@ -1,6 +1,7 @@
 import os
 
 from google import genai
+from google.genai import errors as genai_errors
 from fastapi import HTTPException, status
 
 _MODEL = "gemini-2.5-flash"
@@ -23,5 +24,11 @@ def generate_lore(name: str, mythology: str, creature_type: str) -> str:
     prompt = _PROMPT_TEMPLATE.format(
         name=name, mythology=mythology, creature_type=creature_type
     )
-    response = client.models.generate_content(model=_MODEL, contents=prompt)
+    try:
+        response = client.models.generate_content(model=_MODEL, contents=prompt)
+    except genai_errors.ClientError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="LLM service unavailable",
+        ) from e
     return response.text

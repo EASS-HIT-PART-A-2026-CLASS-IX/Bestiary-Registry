@@ -62,7 +62,13 @@ def change_password(
     current_user: CurrentUser,
     session: SessionDep,
 ) -> dict:
-    if not verify_password(body.old_password, current_user.hashed_password):
+    try:
+        password_valid = verify_password(
+            body.old_password, current_user.hashed_password
+        )
+    except Exception:
+        raise HTTPException(status_code=422, detail="Invalid password format")
+    if not password_valid:
         raise HTTPException(status_code=400, detail="Incorrect current password")
     current_user.hashed_password = hash_password(body.new_password)
     session.add(current_user)

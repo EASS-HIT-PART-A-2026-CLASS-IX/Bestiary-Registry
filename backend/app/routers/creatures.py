@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.responses import StreamingResponse
 
 from app.auth import CurrentUser, require_role
@@ -38,7 +38,12 @@ def get_creatures_endpoint(
     return service.list_creatures(session, current_user.id)
 
 
-@router.get("/export/csv")
+@router.get(
+    "/export/csv",
+    responses={
+        200: {"content": {"text/csv": {}}, "description": "Creature data as CSV"}
+    },
+)
 def export_creatures_csv_endpoint(
     session: SessionDep, current_user: CurrentUser
 ) -> StreamingResponse:
@@ -80,6 +85,8 @@ def generate_lore_endpoint(
     creature_id: int, session: SessionDep, current_user: CurrentUser
 ) -> dict:
     creature = service.get_creature(session, creature_id, current_user.id)
+    if not creature:
+        raise HTTPException(status_code=404, detail="Creature not found")
     lore = lore_service.generate_lore(
         creature.name, creature.mythology, creature.creature_type
     )

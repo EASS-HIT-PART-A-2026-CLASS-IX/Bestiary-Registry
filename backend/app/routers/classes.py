@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from app.db import SessionDep
 from app.models import (
     CreatureClassCreate,
@@ -28,4 +28,9 @@ def delete_class(class_id: int, session: SessionDep):
 
 @router.put("/{class_id}", response_model=CreatureClassRead)
 def update_class(class_id: int, class_update: CreatureClassUpdate, session: SessionDep):
-    return service.update_class(session, class_id, class_update)
+    try:
+        return service.update_class(session, class_id, class_update)
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=422, detail="Invalid update data")

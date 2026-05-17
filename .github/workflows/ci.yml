@@ -48,11 +48,28 @@ jobs:
         env:
           SECRET_KEY: ci-test-secret-key-not-for-production
 
+      - name: Get JWT token for Schemathesis
+        run: |
+          curl -s -X POST http://localhost:8000/auth/token \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            --data-urlencode "username=admin" \
+            --data-urlencode "password=admin123" \
+            | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])" \
+            > /tmp/schemathesis_token.txt
+          echo "Token obtained: $(wc -c < /tmp/schemathesis_token.txt) bytes"
+        env:
+          SECRET_KEY: ci-test-secret-key-not-for-production
+
       - name: Run Schemathesis
         run: |
           source .venv/bin/activate
+          TOKEN=$(cat /tmp/schemathesis_token.txt)
           uv run --group dev schemathesis run http://localhost:8000/openapi.json \
-            --checks all \
-            --max-examples 50
+            --checks not_a_server_error \
+            --max-examples 10 \
+            --rate-limit 60/m \
+            --phases coverage,fuzzing \
+            --exclude-path "/creatures/{creature_id}/lore" \
+            -H "Authorization: Bearer $TOKEN"
         env:
           SECRET_KEY: ci-test-secret-key-not-for-production

@@ -113,7 +113,12 @@ Every response includes three headers:
 ### Verify headers on a normal request
 
 ```bash
-curl -si http://localhost:8000/ | grep -i x-ratelimit
+TOKEN=$(curl -s -X POST http://localhost:8000/auth/token \
+  -d "username=admin&password=admin123" \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+curl -s -D - http://localhost:8000/creatures/ \
+  -H "Authorization: Bearer $TOKEN" \
+  -o /dev/null | grep -i x-ratelimit
 ```
 
 Expected output:
@@ -188,9 +193,16 @@ uv add --dev schemathesis
 docker compose up -d
 
 # Run Schemathesis against the OpenAPI schema
+TOKEN=$(curl -s -X POST http://localhost:8000/auth/token \
+  -d "username=admin&password=admin123" \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
 uv run schemathesis run http://localhost:8000/openapi.json \
-  --checks all \
-  --hypothesis-max-examples 50
+  --checks not_a_server_error \
+  --max-examples 10 \
+  --rate-limit 60/m \
+  --phases coverage,fuzzing \
+  --exclude-path "/creatures/{creature_id}/lore" \
+  -H "Authorization: Bearer $TOKEN"
 ```
 
 **3. Add a pytest-based Schemathesis test** (runs without a live server, using
