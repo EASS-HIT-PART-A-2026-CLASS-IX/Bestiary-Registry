@@ -70,7 +70,7 @@ jobs:
             --rate-limit 60/m \
             --phases coverage,fuzzing \
             --exclude-path "/creatures/{creature_id}/lore" \
-            --warnings ignore \
+            --warnings off \
             -H "Authorization: Bearer $TOKEN"
         env:
           SECRET_KEY: ci-test-secret-key-not-for-production
