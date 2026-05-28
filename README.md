@@ -8,8 +8,8 @@
 
 This project implements **EX1 (FastAPI Backend)**, **EX2 (Streamlit Frontend)**, and **EX3 (Orchestrated Microservices)**. It is a registry for managing a "Bestiary" of mythical creatures, allowing users to catalogue and view entities across different mythologies.
 <div align="center">
-  <a href="https://www.youtube.com/watch?v=lLU2ojBF8Ys">
-    <img src="https://img.youtube.com/vi/lLU2ojBF8Ys/maxresdefault.jpg" alt="Watch the video" width="640" style="border-radius: 8px;">
+  <a href="https://www.youtube.com/watch?v=lLU2ojBF8Ys" target="_blank" rel="noopener noreferrer">
+    <img src="frontend\pictures\play_video_pic.png" alt="Bestiary Registry Dashboard Video Demo" width="530" style="border-radius: 12px; box-shadow: 0 6px 12px rgba(0,0,0,0.4);">
   </a>
 </div>
 
