@@ -7,6 +7,11 @@
 ![Docker](https://img.shields.io/badge/Orchestration-Docker_Compose-2496ED)
 
 This project implements **EX1 (FastAPI Backend)**, **EX2 (Streamlit Frontend)**, and **EX3 (Orchestrated Microservices)**. It is a registry for managing a "Bestiary" of mythical creatures, allowing users to catalogue and view entities across different mythologies.
+<div align="center">
+  <a href="https://www.youtube.com/watch?v=lLU2ojBF8Ys">
+    <img src="https://img.youtube.com/vi/lLU2ojBF8Ys/maxresdefault.jpg" alt="Watch the video" width="640" style="border-radius: 8px;">
+  </a>
+</div>
 
 ## Important Links
 
